@@ -6,7 +6,6 @@ import ApiStatus from './components/ApiStatus';
 import LoginModal from './components/LoginModal';
 import UserProfile from './components/UserProfile';
 import LoginStatus from './components/LoginStatus';
-import EnvDebug from './components/EnvDebug';
 import Market from './pages/Market';
 import PersonalFinance from './pages/PersonalFinance';
 import ExpertViews from './pages/ExpertViews';
@@ -201,7 +200,6 @@ const AppContent = () => {
             <ParticleBackground isDark={isDark} />
             <FloatingElements isDark={isDark} />
           </Suspense>
-          <EnvDebug />
           <UserProfile />
           <LoginStatus />
           <Header 

@@ -1,5 +1,8 @@
 import axios from 'axios';
 
+// CORS proxy for production
+const CORS_PROXY = 'https://api.allorigins.win/raw?url=';
+
 const NEWS_APIS = {
   newsapi: {
     baseUrl: 'https://newsapi.org/v2',
@@ -17,6 +20,17 @@ const NEWS_APIS = {
     baseUrl: 'https://gnews.io/api/v4',
     apiKey: process.env.REACT_APP_GNEWS_API_KEY || 'demo'
   }
+};
+
+// Helper function to build URL with CORS proxy
+const buildApiUrl = (baseUrl, endpoint, params) => {
+  const url = new URL(baseUrl + endpoint);
+  Object.keys(params).forEach(key => {
+    if (params[key] !== undefined) {
+      url.searchParams.append(key, params[key]);
+    }
+  });
+  return CORS_PROXY + encodeURIComponent(url.toString());
 };
 
 const regionalMarketData = {
@@ -136,10 +150,12 @@ class NewsService {
         };
       }
       
-      const response = await axios.get(`${NEWS_APIS.newsapi.baseUrl}${endpoint}`, {
-        params,
-        headers: { 'X-API-Key': NEWS_APIS.newsapi.apiKey }
+      const apiUrl = buildApiUrl(NEWS_APIS.newsapi.baseUrl, endpoint, {
+        ...params,
+        apiKey: NEWS_APIS.newsapi.apiKey
       });
+      
+      const response = await axios.get(apiUrl);
       
       return response.data.articles?.map((article, index) => ({
         ...article,
@@ -156,15 +172,15 @@ class NewsService {
 
   async fetchFromGuardian() {
     try {
-      const response = await axios.get(`${NEWS_APIS.guardian.baseUrl}/search`, {
-        params: {
-          'api-key': NEWS_APIS.guardian.apiKey,
-          section: 'business',
-          'page-size': 10,
-          'show-fields': 'thumbnail,trailText',
-          'order-by': 'newest'
-        }
+      const apiUrl = buildApiUrl(NEWS_APIS.guardian.baseUrl, '/search', {
+        'api-key': NEWS_APIS.guardian.apiKey,
+        section: 'business',
+        'page-size': 10,
+        'show-fields': 'thumbnail,trailText',
+        'order-by': 'newest'
       });
+      
+      const response = await axios.get(apiUrl);
       
       return response.data.response?.results?.map((article, index) => ({
         id: `guardian-${index}`,
@@ -193,15 +209,15 @@ class NewsService {
       
       const countryMap = { 'india': 'in', 'china': 'cn' };
       
-      const response = await axios.get(`${NEWS_APIS.gnews.baseUrl}/top-headlines`, {
-        params: {
-          token: NEWS_APIS.gnews.apiKey,
-          topic: 'business',
-          country: countryMap[region] || 'us',
-          max: 10,
-          lang: 'en'
-        }
+      const apiUrl = buildApiUrl(NEWS_APIS.gnews.baseUrl, '/top-headlines', {
+        token: NEWS_APIS.gnews.apiKey,
+        topic: 'business',
+        country: countryMap[region] || 'us',
+        max: 10,
+        lang: 'en'
       });
+      
+      const response = await axios.get(apiUrl);
       
       if (response.data && response.data.articles) {
         return response.data.articles.map((article, index) => ({
@@ -318,15 +334,15 @@ class NewsService {
   async searchNews(query) {
     try {
       if (NEWS_APIS.newsapi.apiKey !== 'demo-key') {
-        const response = await axios.get(`${NEWS_APIS.newsapi.baseUrl}/everything`, {
-          params: {
-            q: `${query} AND (finance OR market OR economy)`,
-            language: 'en',
-            sortBy: 'publishedAt',
-            pageSize: 20
-          },
-          headers: { 'X-API-Key': NEWS_APIS.newsapi.apiKey }
+        const apiUrl = buildApiUrl(NEWS_APIS.newsapi.baseUrl, '/everything', {
+          q: `${query} AND (finance OR market OR economy)`,
+          language: 'en',
+          sortBy: 'publishedAt',
+          pageSize: 20,
+          apiKey: NEWS_APIS.newsapi.apiKey
         });
+        
+        const response = await axios.get(apiUrl);
         
         const articles = response.data.articles?.map((article, index) => ({
           ...article,
@@ -372,14 +388,13 @@ class NewsService {
           // Clean symbol for Alpha Vantage API
           const cleanSymbol = stock.symbol.replace('.BSE', '').replace('.AS', '').replace('.SW', '').replace('.PA', '').replace('.CO', '');
           
-          const response = await axios.get(NEWS_APIS.alphavantage.baseUrl, {
-            params: {
-              function: 'GLOBAL_QUOTE',
-              symbol: cleanSymbol,
-              apikey: NEWS_APIS.alphavantage.apiKey
-            },
-            timeout: 10000
+          const apiUrl = buildApiUrl(NEWS_APIS.alphavantage.baseUrl, '', {
+            function: 'GLOBAL_QUOTE',
+            symbol: cleanSymbol,
+            apikey: NEWS_APIS.alphavantage.apiKey
           });
+          
+          const response = await axios.get(apiUrl, { timeout: 10000 });
           
           const quote = response.data['Global Quote'];
           if (quote && quote['05. price']) {
@@ -473,14 +488,13 @@ class NewsService {
       const indices = ['SPY', 'QQQ', 'DIA', 'IWM']; // ETFs representing major indices
       const indicesPromises = indices.map(async (symbol) => {
         try {
-          const response = await axios.get(NEWS_APIS.alphavantage.baseUrl, {
-            params: {
-              function: 'GLOBAL_QUOTE',
-              symbol: symbol,
-              apikey: NEWS_APIS.alphavantage.apiKey
-            },
-            timeout: 10000
+          const apiUrl = buildApiUrl(NEWS_APIS.alphavantage.baseUrl, '', {
+            function: 'GLOBAL_QUOTE',
+            symbol: symbol,
+            apikey: NEWS_APIS.alphavantage.apiKey
           });
+          
+          const response = await axios.get(apiUrl, { timeout: 10000 });
           
           const quote = response.data['Global Quote'];
           if (quote && quote['05. price']) {
@@ -538,15 +552,14 @@ class NewsService {
       const pairs = ['EURUSD', 'GBPUSD', 'USDJPY', 'USDCAD'];
       const forexPromises = pairs.map(async (pair) => {
         try {
-          const response = await axios.get(NEWS_APIS.alphavantage.baseUrl, {
-            params: {
-              function: 'CURRENCY_EXCHANGE_RATE',
-              from_currency: pair.substring(0, 3),
-              to_currency: pair.substring(3, 6),
-              apikey: NEWS_APIS.alphavantage.apiKey
-            },
-            timeout: 10000
+          const apiUrl = buildApiUrl(NEWS_APIS.alphavantage.baseUrl, '', {
+            function: 'CURRENCY_EXCHANGE_RATE',
+            from_currency: pair.substring(0, 3),
+            to_currency: pair.substring(3, 6),
+            apikey: NEWS_APIS.alphavantage.apiKey
           });
+          
+          const response = await axios.get(apiUrl, { timeout: 10000 });
           
           const rate = response.data['Realtime Currency Exchange Rate'];
           if (rate && rate['5. Exchange Rate']) {
