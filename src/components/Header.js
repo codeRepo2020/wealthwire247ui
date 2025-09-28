@@ -115,21 +115,6 @@ const Header = memo(({ onSearch, onThemeToggle, isDark, activeCategory, onCatego
             </div>
           </form>
 
-          {location.pathname === '/' && (
-            <div className="mobile-region-pills">
-              {regions.map((region) => (
-                <button
-                  key={region.id}
-                  onClick={() => onRegionChange(region.id)}
-                  className={`mobile-region-btn ${activeRegion === region.id ? 'active' : ''}`}
-                  title={region.label}
-                >
-                  {region.flag}
-                </button>
-              ))}
-            </div>
-          )}
-
           <div className="header-actions">
             <button onClick={onThemeToggle} className="theme-toggle">
               {isDark ? <Sun size={20} /> : <Moon size={20} />}
@@ -141,6 +126,35 @@ const Header = memo(({ onSearch, onThemeToggle, isDark, activeCategory, onCatego
               {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
           </div>
+        </div>
+
+        {location.pathname === '/' && (
+          <div className="mobile-region-bar">
+            <div className="mobile-region-pills">
+              {regions.map((region) => (
+                <button
+                  key={region.id}
+                  onClick={() => onRegionChange(region.id)}
+                  className={`mobile-region-btn ${activeRegion === region.id ? 'active' : ''}`}
+                >
+                  {region.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="mobile-search-bar">
+          <form onSubmit={handleSearch} className="mobile-search-form">
+            <Search size={20} className="mobile-search-icon" />
+            <input
+              type="text"
+              placeholder="Search financial news..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="mobile-search-input"
+            />
+          </form>
         </div>
 
         {location.pathname === '/' && (
@@ -662,10 +676,11 @@ const Header = memo(({ onSearch, onThemeToggle, isDark, activeCategory, onCatego
           }
 
           .header-content {
-            padding: 1rem 0;
+            padding: 1rem 0 0.5rem 0;
             gap: 1rem;
-            flex-wrap: wrap;
+            flex-wrap: nowrap;
             align-items: center;
+            justify-content: space-between;
           }
 
           .logo {
@@ -679,6 +694,10 @@ const Header = memo(({ onSearch, onThemeToggle, isDark, activeCategory, onCatego
           }
 
           .nav-desktop {
+            display: none;
+          }
+
+          .search-form {
             display: none;
           }
 
@@ -815,86 +834,114 @@ const Header = memo(({ onSearch, onThemeToggle, isDark, activeCategory, onCatego
             width: 4px;
           }
 
-          .search-form {
-            order: 4;
-            flex: 1 1 100%;
-            max-width: 100%;
-            margin-top: 1rem;
+          .mobile-search-bar {
+            padding: 1rem 0;
           }
 
-          .search-input {
+          .mobile-search-form {
+            position: relative;
+            width: 100%;
+          }
+
+          .mobile-search-input {
+            width: 100%;
             padding: 1rem 1.25rem 1rem 3.5rem;
-            font-size: 1rem;
-            border-radius: 0.75rem;
             border: 2px solid #e5e7eb;
+            border-radius: 0.75rem;
+            background: rgba(255, 255, 255, 0.9);
+            color: #111827;
+            font-size: 1rem;
+            transition: all 0.2s ease;
             min-height: 48px;
           }
 
-          .header.dark .search-input {
-            border-color: #6b7280;
+          .header.dark .mobile-search-input {
+            background: rgba(71, 85, 105, 0.9);
+            border-color: #64748b;
+            color: #f1f5f9;
           }
 
-          .search-input:focus {
+          .mobile-search-input:focus {
+            outline: none;
             border-color: #3b82f6;
             box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+            background: rgba(255, 255, 255, 1);
           }
 
-          .search-icon {
+          .header.dark .mobile-search-input:focus {
+            background: rgba(71, 85, 105, 1);
+          }
+
+          .mobile-search-icon {
+            position: absolute;
             left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #64748b;
+            pointer-events: none;
             width: 20px;
             height: 20px;
           }
 
+          .header.dark .mobile-search-icon {
+            color: #94a3b8;
+          }
+
+          .mobile-region-bar {
+            padding: 0.5rem 0 1rem 0;
+            border-bottom: 1px solid rgba(229, 231, 235, 0.5);
+          }
+
+          .header.dark .mobile-region-bar {
+            border-bottom-color: rgba(55, 65, 81, 0.5);
+          }
+
           .mobile-region-pills {
-            order: 2;
             display: flex;
-            gap: 0.5rem;
+            gap: 0.75rem;
             align-items: center;
+            flex-wrap: wrap;
           }
 
           .mobile-region-btn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0.5rem;
+            padding: 0.5rem 1rem;
             border: 1px solid #e5e7eb;
             background: rgba(255, 255, 255, 0.9);
-            border-radius: 0.5rem;
-            font-size: 1rem;
+            border-radius: 1rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #374151;
             cursor: pointer;
             transition: all 0.3s ease;
-            min-width: 32px;
-            min-height: 32px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            white-space: nowrap;
           }
 
           .header.dark .mobile-region-btn {
             background: rgba(55, 65, 81, 0.9);
             border-color: #6b7280;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+            color: #e5e7eb;
           }
 
           .mobile-region-btn:hover {
             background: rgba(255, 255, 255, 1);
             border-color: #3b82f6;
-            transform: scale(1.1);
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+            color: #2563eb;
+            transform: translateY(-1px);
           }
 
           .header.dark .mobile-region-btn:hover {
             background: rgba(55, 65, 81, 1);
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+            color: #60a5fa;
           }
 
           .mobile-region-btn.active {
             background: #3b82f6;
             border-color: #3b82f6;
-            transform: scale(1.05);
-            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+            color: white;
+            font-weight: 600;
           }
 
           .header-actions {
-            order: 3;
             display: flex;
             gap: 0.75rem;
           }
