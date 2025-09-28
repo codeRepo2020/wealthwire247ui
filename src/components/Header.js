@@ -706,6 +706,11 @@ const Header = memo(({ onSearch, onThemeToggle, isDark, activeCategory, onCatego
             display: none;
           }
 
+          .mobile-region-bar,
+          .mobile-search-bar {
+            display: block;
+          }
+
           .mobile-menu-btn {
             display: flex;
             align-items: center;
