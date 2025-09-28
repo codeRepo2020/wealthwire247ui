@@ -115,6 +115,22 @@ const Header = memo(({ onSearch, onThemeToggle, isDark, activeCategory, onCatego
             </div>
           </form>
 
+          {location.pathname === '/' && (
+            <div className="mobile-region-selector">
+              <select 
+                value={activeRegion} 
+                onChange={(e) => onRegionChange(e.target.value)}
+                className="region-select"
+              >
+                {regions.map((region) => (
+                  <option key={region.id} value={region.id}>
+                    {region.flag} {region.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <div className="header-actions">
             <button onClick={onThemeToggle} className="theme-toggle">
               {isDark ? <Sun size={20} /> : <Moon size={20} />}
@@ -797,7 +813,7 @@ const Header = memo(({ onSearch, onThemeToggle, isDark, activeCategory, onCatego
           }
 
           .search-form {
-            order: 3;
+            order: 4;
             flex: 1 1 100%;
             max-width: 100%;
             margin-top: 1rem;
@@ -826,8 +842,54 @@ const Header = memo(({ onSearch, onThemeToggle, isDark, activeCategory, onCatego
             height: 20px;
           }
 
-          .header-actions {
+          .mobile-region-selector {
             order: 2;
+            display: flex;
+            align-items: center;
+          }
+
+          .region-select {
+            padding: 0.75rem 1rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 0.75rem;
+            background: rgba(255, 255, 255, 0.95);
+            color: #374151;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-height: 48px;
+            min-width: 120px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+          }
+
+          .header.dark .region-select {
+            background: rgba(55, 65, 81, 0.95);
+            border-color: #6b7280;
+            color: #f9fafb;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+          }
+
+          .region-select:hover {
+            background: rgba(255, 255, 255, 1);
+            border-color: #3b82f6;
+            transform: scale(1.02);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+          }
+
+          .header.dark .region-select:hover {
+            background: rgba(55, 65, 81, 1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+          }
+
+          .region-select:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+          }
+
+          .header-actions {
+            order: 3;
             display: flex;
             gap: 0.75rem;
           }
@@ -1057,6 +1119,17 @@ const Header = memo(({ onSearch, onThemeToggle, isDark, activeCategory, onCatego
             padding: 1rem 1.5rem;
             font-size: 1.0625rem;
             min-height: 52px;
+          }
+
+          .mobile-region-selector {
+            order: 2;
+          }
+
+          .region-select {
+            padding: 0.625rem 0.875rem;
+            font-size: 0.8125rem;
+            min-height: 44px;
+            min-width: 100px;
           }
 
           .mobile-categories-grid,
