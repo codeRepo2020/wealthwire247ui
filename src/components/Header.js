@@ -116,18 +116,17 @@ const Header = memo(({ onSearch, onThemeToggle, isDark, activeCategory, onCatego
           </form>
 
           {location.pathname === '/' && (
-            <div className="mobile-region-selector">
-              <select 
-                value={activeRegion} 
-                onChange={(e) => onRegionChange(e.target.value)}
-                className="region-select"
-              >
-                {regions.map((region) => (
-                  <option key={region.id} value={region.id}>
-                    {region.flag} {region.label}
-                  </option>
-                ))}
-              </select>
+            <div className="mobile-region-pills">
+              {regions.map((region) => (
+                <button
+                  key={region.id}
+                  onClick={() => onRegionChange(region.id)}
+                  className={`mobile-region-btn ${activeRegion === region.id ? 'active' : ''}`}
+                  title={region.label}
+                >
+                  {region.flag}
+                </button>
+              ))}
             </div>
           )}
 
@@ -648,6 +647,10 @@ const Header = memo(({ onSearch, onThemeToggle, isDark, activeCategory, onCatego
           font-weight: bold;
         }
 
+        .mobile-region-pills {
+          display: none;
+        }
+
         @media (max-width: 768px) {
           .header {
             position: fixed;
@@ -842,50 +845,52 @@ const Header = memo(({ onSearch, onThemeToggle, isDark, activeCategory, onCatego
             height: 20px;
           }
 
-          .mobile-region-selector {
+          .mobile-region-pills {
             order: 2;
             display: flex;
+            gap: 0.5rem;
             align-items: center;
           }
 
-          .region-select {
-            padding: 0.75rem 1rem;
-            border: 2px solid #e5e7eb;
-            border-radius: 0.75rem;
-            background: rgba(255, 255, 255, 0.95);
-            color: #374151;
-            font-size: 0.875rem;
-            font-weight: 600;
+          .mobile-region-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.5rem;
+            border: 1px solid #e5e7eb;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 0.5rem;
+            font-size: 1rem;
             cursor: pointer;
             transition: all 0.3s ease;
-            min-height: 48px;
-            min-width: 120px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            min-width: 32px;
+            min-height: 32px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
           }
 
-          .header.dark .region-select {
-            background: rgba(55, 65, 81, 0.95);
+          .header.dark .mobile-region-btn {
+            background: rgba(55, 65, 81, 0.9);
             border-color: #6b7280;
-            color: #f9fafb;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
           }
 
-          .region-select:hover {
+          .mobile-region-btn:hover {
             background: rgba(255, 255, 255, 1);
             border-color: #3b82f6;
-            transform: scale(1.02);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            transform: scale(1.1);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
           }
 
-          .header.dark .region-select:hover {
+          .header.dark .mobile-region-btn:hover {
             background: rgba(55, 65, 81, 1);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
           }
 
-          .region-select:focus {
-            outline: none;
+          .mobile-region-btn.active {
+            background: #3b82f6;
             border-color: #3b82f6;
-            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+            transform: scale(1.05);
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
           }
 
           .header-actions {
@@ -1066,6 +1071,10 @@ const Header = memo(({ onSearch, onThemeToggle, isDark, activeCategory, onCatego
           .mobile-menu-btn {
             display: none;
           }
+
+          .mobile-region-pills {
+            display: none;
+          }
         }
 
         @media (max-width: 480px) {
@@ -1121,15 +1130,15 @@ const Header = memo(({ onSearch, onThemeToggle, isDark, activeCategory, onCatego
             min-height: 52px;
           }
 
-          .mobile-region-selector {
-            order: 2;
+          .mobile-region-pills {
+            gap: 0.375rem;
           }
 
-          .region-select {
-            padding: 0.625rem 0.875rem;
-            font-size: 0.8125rem;
-            min-height: 44px;
-            min-width: 100px;
+          .mobile-region-btn {
+            padding: 0.375rem;
+            font-size: 0.875rem;
+            min-width: 28px;
+            min-height: 28px;
           }
 
           .mobile-categories-grid,
