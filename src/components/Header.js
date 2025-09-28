@@ -598,21 +598,24 @@ const Header = memo(({ onSearch, onThemeToggle, isDark, activeCategory, onCatego
             left: 0;
             right: 0;
             z-index: 1000;
+            padding: 0 1rem;
           }
 
           .header-content {
-            padding: 0.75rem 0;
-            gap: 0.75rem;
+            padding: 1rem 0;
+            gap: 1rem;
             flex-wrap: wrap;
+            align-items: center;
           }
 
           .logo {
-            font-size: 1.25rem;
+            font-size: 1.4rem;
+            flex: 1;
           }
 
           .logo-icon {
-            width: 36px;
-            height: 36px;
+            width: 40px;
+            height: 40px;
           }
 
           .nav-desktop {
@@ -623,29 +626,36 @@ const Header = memo(({ onSearch, onThemeToggle, isDark, activeCategory, onCatego
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 0.5rem;
-            background: rgba(255, 255, 255, 0.9);
-            border: 1px solid #475569;
-            border-radius: 0.375rem;
+            padding: 0.75rem;
+            background: rgba(255, 255, 255, 0.95);
+            border: 2px solid #e5e7eb;
+            border-radius: 0.75rem;
             color: #374151;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all 0.3s ease;
+            min-width: 48px;
+            min-height: 48px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
           }
 
           .header.dark .mobile-menu-btn {
-            background: rgba(71, 85, 105, 0.9);
-            border-color: #64748b;
-            color: #f1f5f9;
+            background: rgba(55, 65, 81, 0.95);
+            border-color: #6b7280;
+            color: #f9fafb;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
           }
 
           .mobile-menu-btn:hover {
             background: rgba(255, 255, 255, 1);
             color: #1e293b;
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
           }
 
           .header.dark .mobile-menu-btn:hover {
-            background: rgba(71, 85, 105, 1);
+            background: rgba(55, 65, 81, 1);
             color: #f8fafc;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
           }
 
           .mobile-nav-overlay {
@@ -653,81 +663,167 @@ const Header = memo(({ onSearch, onThemeToggle, isDark, activeCategory, onCatego
             top: 100%;
             left: 0;
             right: 0;
-            background: rgba(30, 41, 59, 0.98);
+            background: rgba(255, 255, 255, 0.98);
             backdrop-filter: blur(20px);
-            border-bottom: 2px solid #475569;
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+            border-bottom: 2px solid #e5e7eb;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
             z-index: 999;
+            animation: slideDown 0.3s ease-out;
           }
 
           .header.dark .mobile-nav-overlay {
-            background: rgba(15, 23, 42, 0.98);
-            border-bottom-color: #334155;
+            background: rgba(17, 24, 39, 0.98);
+            border-bottom-color: #374151;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+          }
+
+          @keyframes slideDown {
+            from {
+              opacity: 0;
+              transform: translateY(-20px);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0);
+            }
           }
 
           .mobile-nav {
             display: flex;
             flex-direction: column;
-            padding: 1rem 0;
+            padding: 1.5rem 0;
           }
 
           .mobile-nav-link {
             display: flex;
             align-items: center;
-            padding: 1rem 1.5rem;
-            color: #e2e8f0;
+            padding: 1.25rem 2rem;
+            color: #374151;
             text-decoration: none;
-            font-weight: 500;
-            font-size: 1.1rem;
-            transition: all 0.2s ease;
+            font-weight: 600;
+            font-size: 1.125rem;
+            transition: all 0.3s ease;
             border-left: 4px solid transparent;
+            position: relative;
+            min-height: 56px;
+          }
+
+          .header.dark .mobile-nav-link {
+            color: #e5e7eb;
+          }
+
+          .mobile-nav-link::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 0;
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            transition: width 0.3s ease;
           }
 
           .mobile-nav-link:hover {
-            background: rgba(71, 85, 105, 0.5);
+            background: rgba(59, 130, 246, 0.05);
+            color: #2563eb;
+            border-left-color: #3b82f6;
+            transform: translateX(8px);
+          }
+
+          .header.dark .mobile-nav-link:hover {
+            background: rgba(59, 130, 246, 0.1);
             color: #60a5fa;
-            border-left-color: #60a5fa;
+          }
+
+          .mobile-nav-link:hover::before {
+            width: 4px;
           }
 
           .mobile-nav-link.active {
-            background: rgba(96, 165, 250, 0.1);
+            background: rgba(59, 130, 246, 0.1);
+            color: #2563eb;
+            border-left-color: #3b82f6;
+            font-weight: 700;
+          }
+
+          .header.dark .mobile-nav-link.active {
+            background: rgba(59, 130, 246, 0.15);
             color: #60a5fa;
-            border-left-color: #60a5fa;
+          }
+
+          .mobile-nav-link.active::before {
+            width: 4px;
           }
 
           .search-form {
             order: 3;
             flex: 1 1 100%;
             max-width: 100%;
-            margin-top: 0.5rem;
+            margin-top: 1rem;
           }
 
           .search-input {
-            padding: 0.6rem 1rem 0.6rem 2.5rem;
-            font-size: 0.875rem;
+            padding: 1rem 1.25rem 1rem 3.5rem;
+            font-size: 1rem;
+            border-radius: 0.75rem;
+            border: 2px solid #e5e7eb;
+            min-height: 48px;
+          }
+
+          .header.dark .search-input {
+            border-color: #6b7280;
+          }
+
+          .search-input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
           }
 
           .search-icon {
-            left: 0.75rem;
+            left: 1rem;
+            width: 20px;
+            height: 20px;
           }
 
           .header-actions {
             order: 2;
+            display: flex;
+            gap: 0.75rem;
           }
 
           .theme-toggle {
-            padding: 0.5rem;
+            padding: 0.75rem;
+            border-radius: 0.75rem;
+            border: 2px solid #e5e7eb;
+            min-width: 48px;
+            min-height: 48px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+          }
+
+          .header.dark .theme-toggle {
+            border-color: #6b7280;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+          }
+
+          .theme-toggle:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+          }
+
+          .header.dark .theme-toggle:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
           }
 
           .categories-bar {
-            padding: 0.5rem 0 1rem 0;
+            padding: 1rem 0 1.5rem 0;
           }
 
           .categories-scroll {
             overflow-x: auto;
             scrollbar-width: none;
             -ms-overflow-style: none;
-            padding-bottom: 0.5rem;
+            padding: 0.5rem 0 1rem 0;
+            gap: 0.75rem;
           }
 
           .categories-scroll::-webkit-scrollbar {
@@ -735,14 +831,16 @@ const Header = memo(({ onSearch, onThemeToggle, isDark, activeCategory, onCatego
           }
 
           .category-pill {
-            padding: 0.5rem 0.75rem;
-            font-size: 0.8rem;
-            min-width: 100px;
+            padding: 0.75rem 1rem;
+            font-size: 0.875rem;
+            min-width: 110px;
             flex-shrink: 0;
+            border-radius: 1rem;
+            min-height: 44px;
           }
 
           .region-dropdown {
-            min-width: 140px;
+            min-width: 160px;
           }
         }
 
@@ -753,59 +851,77 @@ const Header = memo(({ onSearch, onThemeToggle, isDark, activeCategory, onCatego
         }
 
         @media (max-width: 480px) {
+          .header {
+            padding: 0 0.75rem;
+          }
+
           .header-content {
-            padding: 0.5rem 0;
+            padding: 0.75rem 0;
+            gap: 0.75rem;
           }
 
           .logo {
-            font-size: 1.1rem;
+            font-size: 1.2rem;
           }
 
           .logo-text {
-            display: none;
-          }
-
-          .logo-icon {
-            width: 32px;
-            height: 32px;
-          }
-
-          .search-input {
-            padding: 0.5rem 0.75rem 0.5rem 2.25rem;
-            font-size: 0.8rem;
-          }
-
-          .search-icon {
-            left: 0.6rem;
-            width: 16px;
-            height: 16px;
-          }
-
-          .theme-toggle {
-            padding: 0.4rem;
-          }
-
-          .mobile-menu-btn {
-            padding: 0.4rem;
-          }
-
-          .mobile-nav-link {
-            padding: 0.875rem 1rem;
             font-size: 1rem;
           }
 
-          .category-pill {
-            padding: 0.4rem 0.6rem;
-            font-size: 0.75rem;
-            min-width: 80px;
+          .logo-icon {
+            width: 36px;
+            height: 36px;
           }
 
-          .category-pill .label {
-            display: none;
+          .search-input {
+            padding: 0.875rem 1rem 0.875rem 3rem;
+            font-size: 0.9rem;
+            min-height: 44px;
+          }
+
+          .search-icon {
+            left: 0.875rem;
+            width: 18px;
+            height: 18px;
+          }
+
+          .theme-toggle {
+            padding: 0.625rem;
+            min-width: 44px;
+            min-height: 44px;
+          }
+
+          .mobile-menu-btn {
+            padding: 0.625rem;
+            min-width: 44px;
+            min-height: 44px;
+          }
+
+          .mobile-nav-link {
+            padding: 1rem 1.5rem;
+            font-size: 1.0625rem;
+            min-height: 52px;
+          }
+
+          .category-pill {
+            padding: 0.625rem 0.875rem;
+            font-size: 0.8125rem;
+            min-width: 90px;
+            min-height: 40px;
+          }
+
+          .category-pill .emoji {
+            font-size: 1rem;
           }
 
           .region-dropdown {
-            min-width: 120px;
+            min-width: 140px;
+          }
+
+          .region-option {
+            padding: 0.75rem;
+            font-size: 0.875rem;
+            min-height: 44px;
           }
         }
       `}</style>
