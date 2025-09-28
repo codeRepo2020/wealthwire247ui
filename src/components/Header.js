@@ -194,6 +194,47 @@ const Header = memo(({ onSearch, onThemeToggle, isDark, activeCategory, onCatego
                   {item.label}
                 </Link>
               ))}
+              
+              {location.pathname === '/' && (
+                <div className="mobile-categories">
+                  <div className="mobile-categories-header">Categories</div>
+                  <div className="mobile-categories-grid">
+                    {categories.map((category) => (
+                      <button
+                        key={category.id}
+                        onClick={() => {
+                          onCategoryChange(category.id);
+                          setIsMobileMenuOpen(false);
+                        }}
+                        className={`mobile-category-pill ${activeCategory === category.id ? 'active' : ''}`}
+                        style={{ '--category-color': category.color }}
+                      >
+                        <span className="emoji">{category.emoji}</span>
+                        <span className="label">{category.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                  
+                  <div className="mobile-regions">
+                    <div className="mobile-regions-header">Regions</div>
+                    <div className="mobile-regions-grid">
+                      {regions.map((region) => (
+                        <button
+                          key={region.id}
+                          onClick={() => {
+                            onRegionChange(region.id);
+                            setIsMobileMenuOpen(false);
+                          }}
+                          className={`mobile-region-pill ${activeRegion === region.id ? 'active' : ''}`}
+                        >
+                          <span className="flag">{region.flag}</span>
+                          <span className="label">{region.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
             </nav>
           </div>
         )}
@@ -815,34 +856,143 @@ const Header = memo(({ onSearch, onThemeToggle, isDark, activeCategory, onCatego
           }
 
           .categories-bar {
-            padding: 1rem 0 1.5rem 0;
-          }
-
-          .categories-scroll {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-            gap: 0.75rem;
-            padding: 0.5rem 0 1rem 0;
-            overflow: visible;
-          }
-
-          .category-pill {
-            padding: 0.75rem 0.5rem;
-            font-size: 0.8rem;
-            width: 100%;
-            min-width: auto;
-            flex-shrink: 1;
-            border-radius: 1rem;
-            min-height: 44px;
-            justify-content: center;
-          }
-
-          .category-pill .label {
             display: none;
           }
 
-          .category-pill .emoji {
-            font-size: 1.2rem;
+          .mobile-categories {
+            border-top: 1px solid #e5e7eb;
+            padding: 1.5rem 0 0.5rem 0;
+            margin-top: 1rem;
+          }
+
+          .header.dark .mobile-categories {
+            border-top-color: #374151;
+          }
+
+          .mobile-categories-header,
+          .mobile-regions-header {
+            padding: 0 2rem 1rem 2rem;
+            font-size: 0.875rem;
+            font-weight: 700;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+          }
+
+          .header.dark .mobile-categories-header,
+          .header.dark .mobile-regions-header {
+            color: #9ca3af;
+          }
+
+          .mobile-categories-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.75rem;
+            padding: 0 2rem 1.5rem 2rem;
+          }
+
+          .mobile-category-pill {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 1rem;
+            border: 2px solid #e5e7eb;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 0.75rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #374151;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-height: 52px;
+          }
+
+          .header.dark .mobile-category-pill {
+            background: rgba(55, 65, 81, 0.5);
+            border-color: #6b7280;
+            color: #e5e7eb;
+          }
+
+          .mobile-category-pill:hover {
+            background: rgba(255, 255, 255, 0.8);
+            border-color: var(--category-color);
+            color: var(--category-color);
+            transform: scale(1.02);
+          }
+
+          .header.dark .mobile-category-pill:hover {
+            background: rgba(55, 65, 81, 0.8);
+            color: var(--category-color);
+          }
+
+          .mobile-category-pill.active {
+            background: var(--category-color);
+            border-color: var(--category-color);
+            color: white;
+          }
+
+          .mobile-category-pill .emoji {
+            font-size: 1.25rem;
+          }
+
+          .mobile-regions {
+            border-top: 1px solid #e5e7eb;
+            padding-top: 1.5rem;
+          }
+
+          .header.dark .mobile-regions {
+            border-top-color: #374151;
+          }
+
+          .mobile-regions-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.75rem;
+            padding: 0 2rem 1rem 2rem;
+          }
+
+          .mobile-region-pill {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 1rem;
+            border: 2px solid #e5e7eb;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 0.75rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #374151;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-height: 52px;
+          }
+
+          .header.dark .mobile-region-pill {
+            background: rgba(55, 65, 81, 0.5);
+            border-color: #6b7280;
+            color: #e5e7eb;
+          }
+
+          .mobile-region-pill:hover {
+            background: rgba(255, 255, 255, 0.8);
+            border-color: #3b82f6;
+            color: #2563eb;
+            transform: scale(1.02);
+          }
+
+          .header.dark .mobile-region-pill:hover {
+            background: rgba(55, 65, 81, 0.8);
+            color: #60a5fa;
+          }
+
+          .mobile-region-pill.active {
+            background: #3b82f6;
+            border-color: #3b82f6;
+            color: white;
+          }
+
+          .mobile-region-pill .flag {
+            font-size: 1.25rem;
           }
 
           .region-dropdown {
@@ -909,19 +1059,23 @@ const Header = memo(({ onSearch, onThemeToggle, isDark, activeCategory, onCatego
             min-height: 52px;
           }
 
-          .categories-scroll {
-            grid-template-columns: repeat(4, 1fr);
+          .mobile-categories-grid,
+          .mobile-regions-grid {
+            grid-template-columns: 1fr;
             gap: 0.5rem;
+            padding: 0 1.5rem 1rem 1.5rem;
           }
 
-          .category-pill {
-            padding: 0.5rem 0.25rem;
-            font-size: 0.7rem;
-            min-height: 40px;
+          .mobile-category-pill,
+          .mobile-region-pill {
+            padding: 0.875rem;
+            font-size: 0.8125rem;
+            min-height: 48px;
           }
 
-          .category-pill .emoji {
-            font-size: 1.1rem;
+          .mobile-category-pill .emoji,
+          .mobile-region-pill .flag {
+            font-size: 1.125rem;
           }
 
           .region-dropdown {
