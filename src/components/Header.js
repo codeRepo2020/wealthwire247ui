@@ -4,7 +4,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useDebounce } from '../hooks/useDebounce';
 
 const Header = memo(({ onSearch, onThemeToggle, isDark, activeCategory, onCategoryChange, activeRegion, onRegionChange }) => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [openDropdown, setOpenDropdown] = useState(null);
   const [isVisible, setIsVisible] = useState(true);
@@ -119,6 +119,12 @@ const Header = memo(({ onSearch, onThemeToggle, isDark, activeCategory, onCatego
             <button onClick={onThemeToggle} className="theme-toggle">
               {isDark ? <Sun size={20} /> : <Moon size={20} />}
             </button>
+            <button 
+              className="mobile-menu-btn"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            >
+              {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
           </div>
         </div>
 
@@ -175,7 +181,22 @@ const Header = memo(({ onSearch, onThemeToggle, isDark, activeCategory, onCatego
           </div>
         )}
 
-
+        {isMobileMenuOpen && (
+          <div className="mobile-nav-overlay">
+            <nav className="mobile-nav">
+              {navItems.map((item) => (
+                <Link 
+                  key={item.label} 
+                  to={item.path} 
+                  className={`mobile-nav-link ${location.pathname === item.path ? 'active' : ''}`}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </nav>
+          </div>
+        )}
       </div>
 
       <style jsx>{`
@@ -598,6 +619,82 @@ const Header = memo(({ onSearch, onThemeToggle, isDark, activeCategory, onCatego
             display: none;
           }
 
+          .mobile-menu-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.5rem;
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid #475569;
+            border-radius: 0.375rem;
+            color: #374151;
+            cursor: pointer;
+            transition: all 0.2s ease;
+          }
+
+          .header.dark .mobile-menu-btn {
+            background: rgba(71, 85, 105, 0.9);
+            border-color: #64748b;
+            color: #f1f5f9;
+          }
+
+          .mobile-menu-btn:hover {
+            background: rgba(255, 255, 255, 1);
+            color: #1e293b;
+          }
+
+          .header.dark .mobile-menu-btn:hover {
+            background: rgba(71, 85, 105, 1);
+            color: #f8fafc;
+          }
+
+          .mobile-nav-overlay {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: rgba(30, 41, 59, 0.98);
+            backdrop-filter: blur(20px);
+            border-bottom: 2px solid #475569;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+            z-index: 999;
+          }
+
+          .header.dark .mobile-nav-overlay {
+            background: rgba(15, 23, 42, 0.98);
+            border-bottom-color: #334155;
+          }
+
+          .mobile-nav {
+            display: flex;
+            flex-direction: column;
+            padding: 1rem 0;
+          }
+
+          .mobile-nav-link {
+            display: flex;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            color: #e2e8f0;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 1.1rem;
+            transition: all 0.2s ease;
+            border-left: 4px solid transparent;
+          }
+
+          .mobile-nav-link:hover {
+            background: rgba(71, 85, 105, 0.5);
+            color: #60a5fa;
+            border-left-color: #60a5fa;
+          }
+
+          .mobile-nav-link.active {
+            background: rgba(96, 165, 250, 0.1);
+            color: #60a5fa;
+            border-left-color: #60a5fa;
+          }
+
           .search-form {
             order: 3;
             flex: 1 1 100%;
@@ -649,6 +746,12 @@ const Header = memo(({ onSearch, onThemeToggle, isDark, activeCategory, onCatego
           }
         }
 
+        @media (min-width: 769px) {
+          .mobile-menu-btn {
+            display: none;
+          }
+        }
+
         @media (max-width: 480px) {
           .header-content {
             padding: 0.5rem 0;
@@ -680,6 +783,15 @@ const Header = memo(({ onSearch, onThemeToggle, isDark, activeCategory, onCatego
 
           .theme-toggle {
             padding: 0.4rem;
+          }
+
+          .mobile-menu-btn {
+            padding: 0.4rem;
+          }
+
+          .mobile-nav-link {
+            padding: 0.875rem 1rem;
+            font-size: 1rem;
           }
 
           .category-pill {
