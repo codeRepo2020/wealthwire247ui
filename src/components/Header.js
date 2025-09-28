@@ -571,37 +571,121 @@ const Header = memo(({ onSearch, onThemeToggle, isDark, activeCategory, onCatego
         }
 
         @media (max-width: 768px) {
+          .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+          }
+
+          .header-content {
+            padding: 0.75rem 0;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+          }
+
+          .logo {
+            font-size: 1.25rem;
+          }
+
+          .logo-icon {
+            width: 36px;
+            height: 36px;
+          }
+
           .nav-desktop {
             display: none;
           }
 
+          .search-form {
+            order: 3;
+            flex: 1 1 100%;
+            max-width: 100%;
+            margin-top: 0.5rem;
+          }
 
+          .search-input {
+            padding: 0.6rem 1rem 0.6rem 2.5rem;
+            font-size: 0.875rem;
+          }
 
-          .header-content {
-            gap: 1rem;
+          .search-icon {
+            left: 0.75rem;
+          }
+
+          .header-actions {
+            order: 2;
+          }
+
+          .theme-toggle {
+            padding: 0.5rem;
           }
 
           .categories-bar {
-            padding: 0.5rem 0 3rem 0;
+            padding: 0.5rem 0 1rem 0;
+          }
+
+          .categories-scroll {
+            overflow-x: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            padding-bottom: 0.5rem;
+          }
+
+          .categories-scroll::-webkit-scrollbar {
+            display: none;
           }
 
           .category-pill {
             padding: 0.5rem 0.75rem;
             font-size: 0.8rem;
+            min-width: 100px;
+            flex-shrink: 0;
           }
 
           .region-dropdown {
-            min-width: 160px;
+            min-width: 140px;
           }
         }
 
         @media (max-width: 480px) {
+          .header-content {
+            padding: 0.5rem 0;
+          }
+
+          .logo {
+            font-size: 1.1rem;
+          }
+
           .logo-text {
             display: none;
           }
 
-          .search-form {
-            max-width: 150px;
+          .logo-icon {
+            width: 32px;
+            height: 32px;
+          }
+
+          .search-input {
+            padding: 0.5rem 0.75rem 0.5rem 2.25rem;
+            font-size: 0.8rem;
+          }
+
+          .search-icon {
+            left: 0.6rem;
+            width: 16px;
+            height: 16px;
+          }
+
+          .theme-toggle {
+            padding: 0.4rem;
+          }
+
+          .category-pill {
+            padding: 0.4rem 0.6rem;
+            font-size: 0.75rem;
+            min-width: 80px;
           }
 
           .category-pill .label {
@@ -609,7 +693,7 @@ const Header = memo(({ onSearch, onThemeToggle, isDark, activeCategory, onCatego
           }
 
           .region-dropdown {
-            min-width: 140px;
+            min-width: 120px;
           }
         }
       `}</style>

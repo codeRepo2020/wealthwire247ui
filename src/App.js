@@ -195,7 +195,7 @@ const AppContent = () => {
         onGuestLogin={continueAsGuest}
       />
       <Router>
-        <div className="App" style={{ paddingTop: '140px' }}>
+        <div className="App" style={{ paddingTop: 'clamp(120px, 15vh, 160px)' }}>
           <Suspense fallback={null}>
             <ParticleBackground isDark={isDark} />
             <FloatingElements isDark={isDark} />
