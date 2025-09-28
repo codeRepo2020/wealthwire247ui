@@ -819,24 +819,30 @@ const Header = memo(({ onSearch, onThemeToggle, isDark, activeCategory, onCatego
           }
 
           .categories-scroll {
-            overflow-x: auto;
-            scrollbar-width: none;
-            -ms-overflow-style: none;
-            padding: 0.5rem 0 1rem 0;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
             gap: 0.75rem;
-          }
-
-          .categories-scroll::-webkit-scrollbar {
-            display: none;
+            padding: 0.5rem 0 1rem 0;
+            overflow: visible;
           }
 
           .category-pill {
-            padding: 0.75rem 1rem;
-            font-size: 0.875rem;
-            min-width: 110px;
-            flex-shrink: 0;
+            padding: 0.75rem 0.5rem;
+            font-size: 0.8rem;
+            width: 100%;
+            min-width: auto;
+            flex-shrink: 1;
             border-radius: 1rem;
             min-height: 44px;
+            justify-content: center;
+          }
+
+          .category-pill .label {
+            display: none;
+          }
+
+          .category-pill .emoji {
+            font-size: 1.2rem;
           }
 
           .region-dropdown {
@@ -903,15 +909,19 @@ const Header = memo(({ onSearch, onThemeToggle, isDark, activeCategory, onCatego
             min-height: 52px;
           }
 
+          .categories-scroll {
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.5rem;
+          }
+
           .category-pill {
-            padding: 0.625rem 0.875rem;
-            font-size: 0.8125rem;
-            min-width: 90px;
+            padding: 0.5rem 0.25rem;
+            font-size: 0.7rem;
             min-height: 40px;
           }
 
           .category-pill .emoji {
-            font-size: 1rem;
+            font-size: 1.1rem;
           }
 
           .region-dropdown {
