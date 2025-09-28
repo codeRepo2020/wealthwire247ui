@@ -665,6 +665,11 @@ const Header = memo(({ onSearch, onThemeToggle, isDark, activeCategory, onCatego
           display: none;
         }
 
+        .mobile-region-bar,
+        .mobile-search-bar {
+          display: none;
+        }
+
         @media (max-width: 768px) {
           .header {
             position: fixed;
@@ -1119,7 +1124,9 @@ const Header = memo(({ onSearch, onThemeToggle, isDark, activeCategory, onCatego
             display: none;
           }
 
-          .mobile-region-pills {
+          .mobile-region-pills,
+          .mobile-region-bar,
+          .mobile-search-bar {
             display: none;
           }
         }
