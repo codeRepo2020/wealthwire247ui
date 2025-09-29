@@ -24,6 +24,29 @@ const NewsCard = memo(({ article, variant = 'default' }) => {
     return colors[category] || colors.default;
   };
   
+  const getApiSourceInfo = (articleId) => {
+    if (!articleId) return null;
+    
+    const apiSources = {
+      'newsapi': { name: 'NewsAPI', color: '#ff6b35', emoji: '📰' },
+      'guardian': { name: 'Guardian', color: '#052962', emoji: '🏛️' },
+      'gnews': { name: 'GNews', color: '#4285f4', emoji: '🌐' },
+      'currents': { name: 'Currents', color: '#00d4aa', emoji: '⚡' },
+      'nyt': { name: 'NYT', color: '#000000', emoji: '📄' },
+      'newsdata': { name: 'NewsData', color: '#1e40af', emoji: '📰' }
+    };
+    
+    for (const [key, info] of Object.entries(apiSources)) {
+      if (articleId.includes(key)) {
+        return info;
+      }
+    }
+    
+    return { name: 'Sample', color: '#6b7280', emoji: '📋' };
+  };
+  
+  const apiSource = getApiSourceInfo(article.id);
+  
   const isClickable = article.url && article.url !== '#';
 
   if (variant === 'featured') {
@@ -43,9 +66,16 @@ const NewsCard = memo(({ article, variant = 'default' }) => {
             }}
           />
           <div className="featured-overlay">
-            <span className={`category-tag ${getCategoryColor(article.category)}`}>
-              {article.category?.replace('-', ' ').toUpperCase() || 'BUSINESS'}
-            </span>
+            <div className="tag-container">
+              <span className={`category-tag ${getCategoryColor(article.category)}`}>
+                {article.category?.replace('-', ' ').toUpperCase() || 'BUSINESS'}
+              </span>
+              {apiSource && (
+                <span className="api-source-tag" style={{ backgroundColor: apiSource.color }}>
+                  {apiSource.emoji} {apiSource.name}
+                </span>
+              )}
+            </div>
           </div>
         </div>
         <div className="featured-content">
@@ -146,6 +176,14 @@ const NewsCard = memo(({ article, variant = 'default' }) => {
             position: absolute;
             top: 1rem;
             left: 1rem;
+            right: 1rem;
+          }
+          
+          .tag-container {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            align-items: center;
           }
 
           .category-tag {
@@ -156,6 +194,18 @@ const NewsCard = memo(({ article, variant = 'default' }) => {
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.3);
             transition: all 0.3s ease;
+          }
+          
+          .api-source-tag {
+            padding: 0.2rem 0.6rem;
+            border-radius: 0.75rem;
+            font-size: 0.65rem;
+            font-weight: 600;
+            color: white;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+            opacity: 0.9;
           }
 
           .category-tag:hover {
@@ -290,9 +340,16 @@ const NewsCard = memo(({ article, variant = 'default' }) => {
         />
       </div>
       <div className="card-content">
-        <span className={`category-tag ${getCategoryColor(article.category)}`}>
-          {article.category?.replace('-', ' ').toUpperCase() || 'BUSINESS'}
-        </span>
+        <div className="tag-container">
+          <span className={`category-tag ${getCategoryColor(article.category)}`}>
+            {article.category?.replace('-', ' ').toUpperCase() || 'BUSINESS'}
+          </span>
+          {apiSource && (
+            <span className="api-source-tag" style={{ backgroundColor: apiSource.color }}>
+              {apiSource.emoji} {apiSource.name}
+            </span>
+          )}
+        </div>
         <h3 className="card-title">{article.title}</h3>
         <p className="card-description">{article.description}</p>
         <div className="card-meta">
@@ -388,13 +445,36 @@ const NewsCard = memo(({ article, variant = 'default' }) => {
           padding: 1.25rem;
         }
 
+        .tag-container {
+          display: flex;
+          gap: 0.5rem;
+          flex-wrap: wrap;
+          align-items: center;
+          margin-bottom: 0.75rem;
+        }
+        
         .category-tag {
           padding: 0.25rem 0.5rem;
           border-radius: 0.75rem;
           font-size: 0.7rem;
           font-weight: 600;
-          margin-bottom: 0.75rem;
           display: inline-block;
+        }
+        
+        .api-source-tag {
+          padding: 0.2rem 0.5rem;
+          border-radius: 0.6rem;
+          font-size: 0.6rem;
+          font-weight: 600;
+          color: white;
+          display: inline-block;
+          opacity: 0.9;
+          transition: all 0.2s ease;
+        }
+        
+        .api-source-tag:hover {
+          opacity: 1;
+          transform: scale(1.05);
         }
 
         .card-title {

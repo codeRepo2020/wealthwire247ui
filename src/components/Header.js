@@ -660,6 +660,20 @@ const Header = memo(({ onSearch, onThemeToggle, isDark, activeCategory, onCatego
           color: #10b981;
           font-weight: bold;
         }
+        
+        .region-option.global-active {
+          background: linear-gradient(135deg, #10b981, #059669) !important;
+          animation: globalPulse 2s infinite;
+        }
+        
+        .global-badge {
+          font-size: 0.6rem;
+          background: rgba(255, 255, 255, 0.3);
+          padding: 0.1rem 0.3rem;
+          border-radius: 0.2rem;
+          margin-left: 0.3rem;
+          font-weight: 700;
+        }
 
         .mobile-region-pills {
           display: none;
@@ -950,6 +964,21 @@ const Header = memo(({ onSearch, onThemeToggle, isDark, activeCategory, onCatego
             color: white;
             font-weight: 600;
           }
+          
+          .mobile-region-btn.global-active {
+            background: linear-gradient(135deg, #10b981, #059669);
+            border-color: #10b981;
+            animation: globalPulse 2s infinite;
+          }
+          
+          .global-indicator {
+            font-size: 0.6rem;
+            background: rgba(255, 255, 255, 0.3);
+            padding: 0.1rem 0.3rem;
+            border-radius: 0.3rem;
+            margin-left: 0.3rem;
+            font-weight: 700;
+          }
 
           .header-actions {
             display: flex;
@@ -1113,6 +1142,30 @@ const Header = memo(({ onSearch, onThemeToggle, isDark, activeCategory, onCatego
             background: #3b82f6;
             border-color: #3b82f6;
             color: white;
+          }
+          
+          .mobile-region-pill.global-active {
+            background: linear-gradient(135deg, #10b981, #059669) !important;
+            border-color: #10b981 !important;
+            animation: globalPulse 2s infinite;
+          }
+          
+          .global-mini-badge {
+            font-size: 0.6rem;
+            background: rgba(255, 255, 255, 0.3);
+            padding: 0.1rem 0.2rem;
+            border-radius: 0.2rem;
+            margin-left: 0.2rem;
+            font-weight: 700;
+          }
+          
+          @keyframes globalPulse {
+            0%, 100% {
+              box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+            }
+            50% {
+              box-shadow: 0 0 0 8px rgba(16, 185, 129, 0);
+            }
           }
 
           .mobile-region-pill .flag {

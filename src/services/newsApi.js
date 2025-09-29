@@ -1,7 +1,18 @@
 import axios from 'axios';
+import newsCache from './newsCache.js';
 
-// CORS proxy for production
-const CORS_PROXY = 'https://api.allorigins.win/raw?url=';
+// CORS proxy for production - multiple fallbacks
+const CORS_PROXIES = [
+  'https://api.allorigins.win/raw?url=',
+  'https://corsproxy.io/?',
+  'https://cors-anywhere.herokuapp.com/'
+];
+
+let currentProxyIndex = 0;
+
+const getCorsProxy = () => {
+  return CORS_PROXIES[currentProxyIndex % CORS_PROXIES.length];
+};
 
 const NEWS_APIS = {
   newsapi: {
@@ -19,6 +30,18 @@ const NEWS_APIS = {
   gnews: {
     baseUrl: 'https://gnews.io/api/v4',
     apiKey: process.env.REACT_APP_GNEWS_API_KEY || 'demo'
+  },
+  currents: {
+    baseUrl: 'https://api.currentsapi.services/v1',
+    apiKey: process.env.REACT_APP_CURRENTS_API_KEY || 'demo'
+  },
+  nyt: {
+    baseUrl: 'https://api.nytimes.com/svc',
+    apiKey: process.env.REACT_APP_NYT_API_KEY || 'demo'
+  },
+  newsdata: {
+    baseUrl: 'https://newsdata.io/api/1',
+    apiKey: process.env.REACT_APP_NEWSDATA_API_KEY || 'demo'
   }
 };
 
@@ -30,7 +53,59 @@ const buildApiUrl = (baseUrl, endpoint, params) => {
       url.searchParams.append(key, params[key]);
     }
   });
-  return CORS_PROXY + encodeURIComponent(url.toString());
+  
+  // Try direct API call first (for development)
+  if (process.env.NODE_ENV === 'development') {
+    console.log('🔧 Development mode: Trying direct API call first');
+    return url.toString();
+  }
+  
+  const corsProxy = getCorsProxy();
+  if (corsProxy.includes('allorigins')) {
+    return corsProxy + encodeURIComponent(url.toString());
+  } else {
+    return corsProxy + url.toString();
+  }
+};
+
+// Retry with different CORS proxy on failure
+const makeRequestWithFallback = async (url, retries = 2) => {
+  // In development, try direct call first
+  if (process.env.NODE_ENV === 'development') {
+    try {
+      console.log('🔧 Trying direct API call...');
+      const response = await axios.get(url, { timeout: 10000 });
+      console.log('✅ Direct API call successful!');
+      return response;
+    } catch (error) {
+      console.log('❌ Direct API call failed, trying CORS proxies...', error.message);
+      // Fall through to CORS proxy logic
+    }
+  }
+  
+  for (let i = 0; i <= retries; i++) {
+    try {
+      // Add CORS proxy if not already present
+      let proxyUrl = url;
+      if (!url.includes('allorigins') && !url.includes('corsproxy') && !url.includes('cors-anywhere')) {
+        const corsProxy = getCorsProxy();
+        proxyUrl = corsProxy + (corsProxy.includes('allorigins') ? encodeURIComponent(url) : url);
+      }
+      
+      console.log(`🔄 Trying CORS proxy ${currentProxyIndex + 1}:`, proxyUrl.substring(0, 100) + '...');
+      const response = await axios.get(proxyUrl, { timeout: 10000 });
+      console.log('✅ CORS proxy successful!');
+      return response;
+    } catch (error) {
+      console.warn(`❌ CORS proxy ${currentProxyIndex + 1} failed:`, error.message);
+      if (i < retries) {
+        currentProxyIndex = (currentProxyIndex + 1) % CORS_PROXIES.length;
+        console.log(`🔄 Retrying with proxy ${currentProxyIndex + 1}...`);
+      } else {
+        throw error;
+      }
+    }
+  }
 };
 
 const regionalMarketData = {
@@ -84,37 +159,146 @@ const regionalMarketData = {
 class NewsService {
   async getTopHeadlines(region = 'all') {
     try {
-      console.log('📡 Fetching news for region:', region);
+      // Check cache first
+      const cachedData = newsCache.get(region);
+      if (cachedData) {
+        return cachedData;
+      }
+
+      console.log('📡 Fetching fresh news for region:', region);
+      console.log('🔑 API Keys status:', {
+        newsapi: NEWS_APIS.newsapi.apiKey !== 'demo-key' ? 'Configured' : 'Missing',
+        guardian: NEWS_APIS.guardian.apiKey !== 'test' ? 'Configured' : 'Missing',
+        gnews: NEWS_APIS.gnews.apiKey !== 'demo' ? 'Configured' : 'Missing',
+        currents: NEWS_APIS.currents.apiKey !== 'demo' ? 'Configured' : 'Missing',
+        nyt: NEWS_APIS.nyt.apiKey !== 'demo' ? 'Configured' : 'Missing',
+        newsdata: NEWS_APIS.newsdata.apiKey !== 'demo' ? 'Configured' : 'Missing'
+      });
+      
       let articles = [];
       
-      // Try NewsAPI first
-      if (NEWS_APIS.newsapi.apiKey !== 'demo-key') {
-        articles = await this.fetchFromNewsAPI(region);
-      }
-      
-      // Try Guardian for Europe if NewsAPI didn't return enough
-      if (region === 'europe' && articles.length < 10 && NEWS_APIS.guardian.apiKey !== 'test') {
-        const guardianArticles = await this.fetchFromGuardian();
-        articles = [...articles, ...guardianArticles];
-      }
-      
-      // Try GNews for India only (China not available)
-      if (region === 'india' && articles.length < 10 && NEWS_APIS.gnews.apiKey !== 'demo') {
-        const gnewsArticles = await this.fetchFromGNews(region);
-        articles = [...articles, ...gnewsArticles];
+      if (region === 'all' || region === 'world') {
+        // For Global/All: Fetch from ALL APIs for comprehensive coverage
+        console.log('🌍 Global mode: Fetching from ALL news APIs...');
+        
+        const apiPromises = [];
+        
+        // Guardian - International business
+        if (NEWS_APIS.guardian.apiKey !== 'test') {
+          apiPromises.push(this.fetchFromGuardian().catch(e => []));
+        }
+        
+        // GNews - Global coverage
+        if (NEWS_APIS.gnews.apiKey !== 'demo') {
+          apiPromises.push(this.fetchFromGNews('world').catch(e => []));
+        }
+        
+        // NYT - Premium global content
+        if (NEWS_APIS.nyt.apiKey !== 'demo') {
+          apiPromises.push(this.fetchFromNYT('all').catch(e => {
+            console.log('⚠️ NYT failed in global mode:', e.message);
+            return [];
+          }));
+        }
+        
+        // NewsData.io - Additional global coverage
+        if (NEWS_APIS.newsdata.apiKey !== 'demo') {
+          console.log('📡 Adding NewsData.io to global fetch...');
+          apiPromises.push(this.fetchFromNewsData('world').catch(e => {
+            console.log('⚠️ NewsData.io failed in global mode:', e.message);
+            return [];
+          }));
+        }
+        
+        // Fetch all APIs simultaneously
+        console.log('🚀 Starting parallel API calls for global mode...');
+        const results = await Promise.allSettled(apiPromises);
+        console.log('📊 All API calls completed');
+        
+        // Combine all results
+        results.forEach((result, index) => {
+          const apiNames = ['Guardian', 'GNews', 'NYT', 'NewsData'];
+          if (result.status === 'fulfilled' && Array.isArray(result.value)) {
+            console.log(`✅ ${apiNames[index]} returned ${result.value.length} articles`);
+            articles = [...articles, ...result.value];
+          } else {
+            console.log(`❌ ${apiNames[index]} failed:`, result.reason?.message || 'Unknown error');
+          }
+        });
+        
+        console.log('🌍 Global articles from all APIs:', articles.length);
+        
+        // Log articles by source for debugging
+        const sourceCount = {};
+        articles.forEach(article => {
+          const source = article.id ? article.id.split('-')[0] : 'unknown';
+          sourceCount[source] = (sourceCount[source] || 0) + 1;
+        });
+        console.log('📊 Articles by source:', sourceCount);
+        
+      } else {
+        // Regional mode: Original logic
+        // Try NewsAPI first
+        if (NEWS_APIS.newsapi.apiKey !== 'demo-key') {
+          articles = await this.fetchFromNewsAPI(region);
+        }
+        
+        // Try Guardian for Europe if NewsAPI didn't return enough
+        if (region === 'europe' && articles.length < 10 && NEWS_APIS.guardian.apiKey !== 'test') {
+          const guardianArticles = await this.fetchFromGuardian();
+          articles = [...articles, ...guardianArticles];
+        }
+        
+        // Try GNews for India only (China not available)
+        if (region === 'india' && articles.length < 10 && NEWS_APIS.gnews.apiKey !== 'demo') {
+          const gnewsArticles = await this.fetchFromGNews(region);
+          articles = [...articles, ...gnewsArticles];
+        }
+        
+        // Try Currents API for additional coverage
+        if (articles.length < 15 && NEWS_APIS.currents.apiKey !== 'demo') {
+          const currentsArticles = await this.fetchFromCurrents(region);
+          articles = [...articles, ...currentsArticles];
+        }
+        
+        // Try NYT API for quality content
+        if (articles.length < 20 && NEWS_APIS.nyt.apiKey !== 'demo') {
+          const nytArticles = await this.fetchFromNYT(region);
+          articles = [...articles, ...nytArticles];
+        }
       }
       
       if (articles.length > 0) {
         console.log('✅ Live articles fetched:', articles.length);
-        return {
-          articles: articles.slice(0, 20),
+        // Shuffle articles to mix sources
+        const shuffled = articles.sort(() => Math.random() - 0.5);
+        const result = {
+          articles: shuffled.slice(0, 20),
           totalResults: articles.length
         };
+        
+        // Cache the result and schedule refresh
+        newsCache.set(region, result);
+        newsCache.scheduleRefresh(region, () => this.fetchFreshNews(region));
+        
+        return result;
       }
       
       // Fallback to sample data
       console.log('⚠️ Using sample data - APIs unavailable');
-      return this.getSampleNews(region);
+      console.log('📊 Total articles found from all APIs:', articles.length);
+      console.log('🔍 API Keys configured:', {
+        newsapi: NEWS_APIS.newsapi.apiKey !== 'demo-key',
+        guardian: NEWS_APIS.guardian.apiKey !== 'test',
+        gnews: NEWS_APIS.gnews.apiKey !== 'demo',
+        currents: NEWS_APIS.currents.apiKey !== 'demo',
+        nyt: NEWS_APIS.nyt.apiKey !== 'demo'
+      });
+      
+      const sampleData = this.getSampleNews(region);
+      // Cache sample data too
+      newsCache.set(region, sampleData);
+      return sampleData;
     } catch (error) {
       console.error('❌ Error fetching news:', error);
       return this.getSampleNews(region);
@@ -123,6 +307,8 @@ class NewsService {
 
   async fetchFromNewsAPI(region) {
     try {
+      console.log('📡 Trying NewsAPI for region:', region);
+      
       let params;
       let endpoint = '/top-headlines';
       
@@ -155,23 +341,33 @@ class NewsService {
         apiKey: NEWS_APIS.newsapi.apiKey
       });
       
-      const response = await axios.get(apiUrl);
+      console.log('🔗 NewsAPI URL:', apiUrl.substring(0, 100) + '...');
       
-      return response.data.articles?.map((article, index) => ({
-        ...article,
-        id: `newsapi-${region}-${index}`,
-        category: this.categorizeArticle(article.title),
-        region: region,
-        isLive: true
-      })) || [];
+      const response = await makeRequestWithFallback(apiUrl);
+      
+      if (response.data && response.data.articles) {
+        console.log('✅ NewsAPI success:', response.data.articles.length, 'articles');
+        return response.data.articles.map((article, index) => ({
+          ...article,
+          id: `newsapi-${region}-${index}`,
+          category: this.categorizeArticle(article.title),
+          region: region,
+          isLive: true
+        }));
+      } else {
+        console.log('⚠️ NewsAPI returned no articles');
+        return [];
+      }
     } catch (error) {
-      console.error('NewsAPI error:', error);
+      console.error('❌ NewsAPI error:', error.message);
       return [];
     }
   }
 
   async fetchFromGuardian() {
     try {
+      console.log('📡 Trying Guardian API...');
+      
       const apiUrl = buildApiUrl(NEWS_APIS.guardian.baseUrl, '/search', {
         'api-key': NEWS_APIS.guardian.apiKey,
         section: 'business',
@@ -180,22 +376,30 @@ class NewsService {
         'order-by': 'newest'
       });
       
-      const response = await axios.get(apiUrl);
+      console.log('🔗 Guardian URL:', apiUrl.substring(0, 100) + '...');
       
-      return response.data.response?.results?.map((article, index) => ({
-        id: `guardian-${index}`,
-        title: article.webTitle,
-        description: article.fields?.trailText || '',
-        url: article.webUrl,
-        urlToImage: article.fields?.thumbnail,
-        publishedAt: article.webPublicationDate,
-        source: { name: 'The Guardian' },
-        category: this.categorizeArticle(article.webTitle),
-        region: 'europe',
-        isLive: true
-      })) || [];
+      const response = await makeRequestWithFallback(apiUrl);
+      
+      if (response.data && response.data.response && response.data.response.results) {
+        console.log('✅ Guardian success:', response.data.response.results.length, 'articles');
+        return response.data.response.results.map((article, index) => ({
+          id: `guardian-${index}`,
+          title: article.webTitle,
+          description: article.fields?.trailText || '',
+          url: article.webUrl,
+          urlToImage: article.fields?.thumbnail,
+          publishedAt: article.webPublicationDate,
+          source: { name: 'The Guardian' },
+          category: this.categorizeArticle(article.webTitle),
+          region: 'europe',
+          isLive: true
+        }));
+      } else {
+        console.log('⚠️ Guardian returned no articles');
+        return [];
+      }
     } catch (error) {
-      console.error('Guardian API error:', error);
+      console.error('❌ Guardian API error:', error.message);
       return [];
     }
   }
@@ -217,7 +421,7 @@ class NewsService {
         lang: 'en'
       });
       
-      const response = await axios.get(apiUrl);
+      const response = await makeRequestWithFallback(apiUrl);
       
       if (response.data && response.data.articles) {
         return response.data.articles.map((article, index) => ({
@@ -237,6 +441,156 @@ class NewsService {
       return [];
     } catch (error) {
       console.error('GNews API error:', error.response?.data || error.message);
+      return [];
+    }
+  }
+
+  async fetchFromCurrents(region) {
+    try {
+      if (NEWS_APIS.currents.apiKey === 'demo') {
+        console.log('Currents API key not configured');
+        return [];
+      }
+      
+      const regionMap = {
+        'us': 'US',
+        'india': 'IN',
+        'europe': 'GB',
+        'china': 'CN',
+        'world': null
+      };
+      
+      const params = {
+        apiKey: NEWS_APIS.currents.apiKey,
+        category: 'business',
+        language: 'en',
+        limit: 10
+      };
+      
+      if (regionMap[region]) {
+        params.country = regionMap[region];
+      }
+      
+      const apiUrl = buildApiUrl(NEWS_APIS.currents.baseUrl, '/latest-news', params);
+      
+      const response = await makeRequestWithFallback(apiUrl);
+      
+      if (response.data && response.data.news) {
+        return response.data.news.map((article, index) => ({
+          id: `currents-${region}-${index}`,
+          title: article.title,
+          description: article.description,
+          url: article.url,
+          urlToImage: article.image,
+          publishedAt: article.published,
+          source: { name: article.author || 'Currents API' },
+          category: this.categorizeArticle(article.title),
+          region: region,
+          isLive: true
+        }));
+      }
+      
+      return [];
+    } catch (error) {
+      console.error('Currents API error:', error.response?.data || error.message);
+      return [];
+    }
+  }
+
+  async fetchFromNewsData(region) {
+    try {
+      console.log('📡 Trying NewsData.io API...');
+      
+      if (NEWS_APIS.newsdata.apiKey === 'demo') {
+        console.log('⚠️ NewsData.io API key not configured');
+        return [];
+      }
+      
+      const apiUrl = buildApiUrl(NEWS_APIS.newsdata.baseUrl, '/news', {
+        apikey: NEWS_APIS.newsdata.apiKey,
+        category: 'business',
+        language: 'en',
+        size: 10
+      });
+      
+      const response = await makeRequestWithFallback(apiUrl);
+      
+      if (response.data && response.data.results) {
+        console.log('✅ NewsData.io success:', response.data.results.length, 'articles');
+        return response.data.results.map((article, index) => ({
+          id: `newsdata-${region}-${index}`,
+          title: article.title,
+          description: article.description,
+          url: article.link,
+          urlToImage: article.image_url,
+          publishedAt: article.pubDate,
+          source: { name: article.source_id || 'NewsData.io' },
+          category: this.categorizeArticle(article.title),
+          region: region,
+          isLive: true
+        }));
+      }
+      
+      return [];
+    } catch (error) {
+      console.error('❌ NewsData.io API error:', error.message);
+      return [];
+    }
+  }
+
+  async fetchFromNYT(region) {
+    try {
+      console.log('📡 Trying NYT API for region:', region);
+      
+      if (NEWS_APIS.nyt.apiKey === 'demo') {
+        console.log('⚠️ NYT API key not configured');
+        return [];
+      }
+      
+      console.log('🔑 NYT API Key configured:', NEWS_APIS.nyt.apiKey.substring(0, 8) + '...');
+      
+      // Use Top Stories API for business news
+      const apiUrl = buildApiUrl(NEWS_APIS.nyt.baseUrl, '/topstories/v2/business.json', {
+        'api-key': NEWS_APIS.nyt.apiKey
+      });
+      
+      console.log('🔗 NYT URL:', apiUrl.substring(0, 100) + '...');
+      
+      const response = await makeRequestWithFallback(apiUrl);
+      
+      console.log('📊 NYT Response status:', response.status);
+      console.log('📊 NYT Response data keys:', Object.keys(response.data || {}));
+      
+      if (response.data && response.data.results) {
+        console.log('✅ NYT success:', response.data.results.length, 'articles');
+        const articles = response.data.results.slice(0, 8).map((article, index) => ({
+          id: `nyt-${region}-${index}`,
+          title: article.title,
+          description: article.abstract,
+          url: article.url,
+          urlToImage: article.multimedia?.[0]?.url || null,
+          publishedAt: article.published_date,
+          source: { name: 'The New York Times' },
+          category: this.categorizeArticle(article.title),
+          region: region,
+          isLive: true
+        }));
+        
+        console.log('📰 NYT Sample article:', articles[0]?.title);
+        return articles;
+      } else {
+        console.log('⚠️ NYT returned no results or invalid structure');
+        console.log('📊 Full NYT response:', JSON.stringify(response.data, null, 2));
+      }
+      
+      return [];
+    } catch (error) {
+      console.error('❌ NYT API error:', error.response?.data || error.message);
+      console.error('❌ NYT Error details:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        url: error.config?.url
+      });
       return [];
     }
   }
@@ -317,12 +671,78 @@ class NewsService {
           source: { name: 'IMF' },
           category: 'monetary-policy',
           region: 'world'
+        },
+        {
+          id: 'w2',
+          title: 'International Trade Tensions Impact Global Supply Chains',
+          description: 'Ongoing trade disputes between major economies continue to affect worldwide commerce and logistics.',
+          url: 'https://www.wto.org',
+          urlToImage: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=400',
+          publishedAt: new Date(Date.now() - 7200000).toISOString(),
+          source: { name: 'World Trade Organization' },
+          category: 'economy',
+          region: 'world'
         }
       ]
     };
     
     const articles = region === 'all' 
-      ? [...sampleArticles.us, ...sampleArticles.india, ...sampleArticles.europe, ...sampleArticles.china, ...sampleArticles.world]
+      ? [
+          ...sampleArticles.us, 
+          ...sampleArticles.india, 
+          ...sampleArticles.europe, 
+          ...sampleArticles.china, 
+          ...sampleArticles.world,
+          // Add more diverse sample articles for comprehensive coverage
+          {
+            id: 'global1',
+            title: 'Global Markets Show Mixed Signals Amid Economic Uncertainty',
+            description: 'International markets display varied performance as investors navigate geopolitical tensions and monetary policy changes.',
+            url: 'https://www.reuters.com',
+            urlToImage: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=400',
+            publishedAt: new Date(Date.now() - 1800000).toISOString(),
+            source: { name: 'Reuters' },
+            category: 'markets',
+            region: 'global',
+            isLive: false
+          },
+          {
+            id: 'global2',
+            title: 'Cryptocurrency Market Volatility Continues Across Exchanges',
+            description: 'Digital assets experience significant price swings as regulatory clarity remains uncertain in major markets.',
+            url: 'https://www.coindesk.com',
+            urlToImage: 'https://images.unsplash.com/photo-1518546305927-5a555bb7020d?w=400',
+            publishedAt: new Date(Date.now() - 2700000).toISOString(),
+            source: { name: 'CoinDesk' },
+            category: 'cryptocurrency',
+            region: 'global',
+            isLive: false
+          },
+          {
+            id: 'nyt-sample-1',
+            title: 'Wall Street Rallies as Inflation Data Shows Signs of Cooling',
+            description: 'Major stock indexes posted gains after the latest consumer price index showed inflation continuing to moderate.',
+            url: 'https://www.nytimes.com',
+            urlToImage: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=400',
+            publishedAt: new Date(Date.now() - 3600000).toISOString(),
+            source: { name: 'The New York Times' },
+            category: 'markets',
+            region: 'global',
+            isLive: false
+          },
+          {
+            id: 'nyt-sample-2',
+            title: 'Federal Reserve Officials Signal Cautious Approach to Rate Cuts',
+            description: 'Central bank policymakers emphasize data-dependent strategy amid mixed economic signals.',
+            url: 'https://www.nytimes.com',
+            urlToImage: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=400',
+            publishedAt: new Date(Date.now() - 5400000).toISOString(),
+            source: { name: 'The New York Times' },
+            category: 'monetary-policy',
+            region: 'global',
+            isLive: false
+          }
+        ]
       : sampleArticles[region] || sampleArticles.world;
     
     return {
@@ -333,25 +753,57 @@ class NewsService {
 
   async searchNews(query) {
     try {
+      let articles = [];
+      
+      // Try NewsAPI first
       if (NEWS_APIS.newsapi.apiKey !== 'demo-key') {
         const apiUrl = buildApiUrl(NEWS_APIS.newsapi.baseUrl, '/everything', {
           q: `${query} AND (finance OR market OR economy)`,
           language: 'en',
           sortBy: 'publishedAt',
-          pageSize: 20,
+          pageSize: 15,
           apiKey: NEWS_APIS.newsapi.apiKey
         });
         
         const response = await axios.get(apiUrl);
-        
-        const articles = response.data.articles?.map((article, index) => ({
+        articles = response.data.articles?.map((article, index) => ({
           ...article,
           id: `search-${index}`,
           category: this.categorizeArticle(article.title)
         })) || [];
-        
+      }
+      
+      // Try NYT Article Search API
+      if (articles.length < 15 && NEWS_APIS.nyt.apiKey !== 'demo') {
+        try {
+          const nytUrl = buildApiUrl(NEWS_APIS.nyt.baseUrl, '/search/v2/articlesearch.json', {
+            q: `${query} AND (business OR finance OR economy)`,
+            sort: 'newest',
+            page: 0,
+            'api-key': NEWS_APIS.nyt.apiKey
+          });
+          
+          const nytResponse = await axios.get(nytUrl);
+          const nytArticles = nytResponse.data.response?.docs?.slice(0, 10).map((article, index) => ({
+            id: `nyt-search-${index}`,
+            title: article.headline.main,
+            description: article.abstract,
+            url: article.web_url,
+            urlToImage: article.multimedia?.[0] ? `https://www.nytimes.com/${article.multimedia[0].url}` : null,
+            publishedAt: article.pub_date,
+            source: { name: 'The New York Times' },
+            category: this.categorizeArticle(article.headline.main)
+          })) || [];
+          
+          articles = [...articles, ...nytArticles];
+        } catch (error) {
+          console.error('NYT search error:', error.message);
+        }
+      }
+      
+      if (articles.length > 0) {
         return {
-          articles,
+          articles: articles.slice(0, 20),
           totalResults: articles.length
         };
       }
@@ -628,6 +1080,14 @@ class NewsService {
     }
     
     return 'general';
+  }
+
+  async fetchFreshNews(region) {
+    // This method bypasses cache for scheduled refreshes
+    const originalMethod = this.getTopHeadlines;
+    // Temporarily disable cache check
+    newsCache.cache.delete(newsCache.getCacheKey(region));
+    return originalMethod.call(this, region);
   }
 
   async getRegionalNews(region) {

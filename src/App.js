@@ -13,6 +13,8 @@ import About from './pages/About';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import newsService from './services/newsApi';
 import { RefreshCw, AlertCircle } from 'lucide-react';
+import './utils/envTest'; // Test environment variables
+import testDirectAPI from './utils/simpleApiTest';
 
 const NewsCard = lazy(() => import('./components/NewsCard'));
 const ParticleBackground = lazy(() => import('./components/ParticleBackground'));
@@ -49,7 +51,9 @@ const AppContent = () => {
       if (searchQuery) {
         response = await newsService.searchNews(searchQuery);
       } else {
-        response = await newsService.getTopHeadlines(activeRegion);
+        // Map 'all' region to 'all' for comprehensive API coverage
+        const regionForAPI = activeRegion === 'all' ? 'all' : activeRegion;
+        response = await newsService.getTopHeadlines(regionForAPI);
         if (activeCategory !== 'all') {
           response.articles = newsService.filterByCategory(response.articles, activeCategory);
         }
@@ -113,13 +117,13 @@ const AppContent = () => {
       `${activeRegion === 'all' ? 'Global' : activeRegion.charAt(0).toUpperCase() + activeRegion.slice(1)} Financial News`,
     pageSubtitle: `${activeCategory === 'all' ? 'All Categories' : 
       activeCategory.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())} • 
-      ${activeRegion === 'all' ? 'Worldwide Coverage' : 
+      ${activeRegion === 'all' ? 'Multi-Source Global Coverage' : 
       `${activeRegion.charAt(0).toUpperCase() + activeRegion.slice(1)} Market Updates`}`
   }), [news, searchQuery, activeRegion, activeCategory]);
 
   const NewsPage = () => (
     <div className="container">
-      <ApiStatus />
+      <ApiStatus activeRegion={activeRegion} newsCount={news.length} />
       
       <div className="content-header">
         <div className="title-section">
@@ -127,10 +131,36 @@ const AppContent = () => {
           <p className="page-subtitle">{pageSubtitle}</p>
         </div>
         
-        <button onClick={handleRefresh} className="refresh-btn" disabled={loading}>
-          <RefreshCw size={18} className={loading ? 'spinning' : ''} />
-          <span>Refresh</span>
-        </button>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button onClick={handleRefresh} className="refresh-btn" disabled={loading}>
+            <RefreshCw size={18} className={loading ? 'spinning' : ''} />
+            <span>Refresh</span>
+          </button>
+          <button 
+            onClick={async () => {
+              console.log('🧪 Testing All APIs Integration...');
+              try {
+                setLoading(true);
+                // Force fetch from all APIs by setting region to 'all'
+                const response = await newsService.getTopHeadlines('all');
+                if (response.articles && response.articles.length > 0) {
+                  setNews(response.articles);
+                  console.log('✅ All APIs integration test successful:', response.articles.length, 'articles');
+                } else {
+                  console.log('❌ All APIs integration test failed - no articles');
+                }
+              } catch (error) {
+                console.error('❌ All APIs integration test error:', error);
+              } finally {
+                setLoading(false);
+              }
+            }}
+            className="refresh-btn"
+            style={{ background: '#059669' }}
+          >
+            Test All APIs
+          </button>
+        </div>
       </div>
 
 
