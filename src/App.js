@@ -130,36 +130,7 @@ const AppContent = () => {
           <p className="page-subtitle">{pageSubtitle}</p>
         </div>
         
-        <div style={{ display: 'flex', gap: '10px' }}>
-          <button onClick={handleRefresh} className="refresh-btn" disabled={loading}>
-            <RefreshCw size={18} className={loading ? 'spinning' : ''} />
-            <span>Refresh</span>
-          </button>
-          <button 
-            onClick={async () => {
-              console.log('🧪 Testing All APIs Integration...');
-              try {
-                setLoading(true);
-                // Force fetch from all APIs by setting region to 'all'
-                const response = await newsService.getTopHeadlines('all');
-                if (response.articles && response.articles.length > 0) {
-                  setNews(response.articles);
-                  console.log('✅ All APIs integration test successful:', response.articles.length, 'articles');
-                } else {
-                  console.log('❌ All APIs integration test failed - no articles');
-                }
-              } catch (error) {
-                console.error('❌ All APIs integration test error:', error);
-              } finally {
-                setLoading(false);
-              }
-            }}
-            className="refresh-btn"
-            style={{ background: '#059669' }}
-          >
-            Test All APIs
-          </button>
-        </div>
+        {/* Removed refresh and test all APIs buttons */}
       </div>
 
 
@@ -291,7 +262,7 @@ const AppContent = () => {
           }
 
           body.dark .page-title {
-            color: #f9fafb;
+            color: #fff;
           }
 
           .page-subtitle {
@@ -301,7 +272,7 @@ const AppContent = () => {
           }
 
           body.dark .page-subtitle {
-            color: #9ca3af;
+            color: #bbb;
           }
 
           .refresh-btn {
@@ -374,9 +345,9 @@ const AppContent = () => {
           }
 
           body.dark .error-message {
-            background: #1f2937;
+            background: #000;
             border-color: #ef4444;
-            color: #fca5a5;
+            color: #fff;
           }
 
           .retry-btn {
@@ -400,8 +371,8 @@ const AppContent = () => {
           }
 
           body.dark .section-title {
-            color: #f9fafb;
-            border-bottom-color: #3b82f6;
+            color: #fff;
+            border-bottom-color: #2196F3;
           }
 
           .news-layout {
@@ -421,7 +392,7 @@ const AppContent = () => {
           }
 
           body.dark .empty-state {
-            color: #9ca3af;
+            color: #bbb;
           }
 
           .empty-state h3 {
@@ -430,7 +401,7 @@ const AppContent = () => {
           }
 
           body.dark .empty-state h3 {
-            color: #f9fafb;
+            color: #fff;
           }
 
           .footer {
@@ -441,8 +412,8 @@ const AppContent = () => {
           }
 
           body.dark .footer {
-            background: #111827;
-            border-top-color: #374151;
+            background: #000;
+            border-top-color: #222;
           }
 
           .footer-content {
@@ -451,7 +422,7 @@ const AppContent = () => {
           }
 
           body.dark .footer-content {
-            color: #9ca3af;
+            color: #bbb;
           }
 
           .disclaimer {
