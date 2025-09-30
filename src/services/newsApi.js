@@ -549,14 +549,12 @@ class NewsService {
       
       console.log('🔑 NYT API Key configured:', NEWS_APIS.nyt.apiKey.substring(0, 8) + '...');
       
-      // Use Top Stories API for business news
-      const apiUrl = buildApiUrl(NEWS_APIS.nyt.baseUrl, '/topstories/v2/business.json', {
-        'api-key': NEWS_APIS.nyt.apiKey
-      });
+      // Use Top Stories API for business news - Direct call (NYT blocks CORS proxies)
+      const directUrl = `${NEWS_APIS.nyt.baseUrl}/topstories/v2/business.json?api-key=${NEWS_APIS.nyt.apiKey}`;
       
-      console.log('🔗 NYT URL:', apiUrl.substring(0, 100) + '...');
+      console.log('🔗 NYT Direct URL:', directUrl.substring(0, 100) + '...');
       
-      const response = await makeRequestWithFallback(apiUrl);
+      const response = await axios.get(directUrl, { timeout: 10000 });
       
       console.log('📊 NYT Response status:', response.status);
       console.log('📊 NYT Response data keys:', Object.keys(response.data || {}));

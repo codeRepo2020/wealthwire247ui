@@ -123,8 +123,7 @@ const AppContent = () => {
 
   const NewsPage = () => (
     <div className="container">
-      <ApiStatus activeRegion={activeRegion} newsCount={news.length} />
-      
+      {/* ApiStatus widget removed */}
       <div className="content-header">
         <div className="title-section">
           <h1 className="page-title">{pageTitle}</h1>
