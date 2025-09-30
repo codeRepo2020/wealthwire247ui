@@ -29,9 +29,6 @@ const AppContent = () => {
   const [activeCategory, setActiveCategory] = useState('all');
   const [activeRegion, setActiveRegion] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const loadedArticleIds = React.useRef(new Set());
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme');
@@ -49,55 +46,20 @@ const AppContent = () => {
     try {
       setLoading(true);
       setError(null);
-
-      // Build cache key based on region, category, search, and page
-      const cacheKey = `newsCache_${activeRegion}_${activeCategory}_${searchQuery || ''}_page${page}`;
-      let useCache = false;
+      
       let response;
-
-      if (page === 1) {
-        const cached = localStorage.getItem(cacheKey);
-        if (cached) {
-          const cachedObj = JSON.parse(cached);
-          const now = Date.now();
-          if (now - cachedObj.timestamp < 1800000) {
-            response = cachedObj.data;
-            useCache = true;
-          }
-        }
-      }
-
-      if (!useCache) {
-        if (searchQuery) {
-          response = await newsService.searchNews(searchQuery, page);
-        } else {
-          const regionForAPI = activeRegion === 'all' ? 'all' : activeRegion;
-          response = await newsService.getTopHeadlines(regionForAPI, page);
-          if (activeCategory !== 'all') {
-            response.articles = newsService.filterByCategory(response.articles, activeCategory);
-          }
-        }
-        if (page === 1) {
-          localStorage.setItem(cacheKey, JSON.stringify({ data: response, timestamp: Date.now() }));
-        }
-      }
-
-      if (page === 1) {
-        // Reset global ID tracker for new filter/search
-        loadedArticleIds.current = new Set((response.articles || []).map(a => a.id || a.url));
-        setNews(response.articles || []);
+      if (searchQuery) {
+        response = await newsService.searchNews(searchQuery);
       } else {
-        setNews(prev => {
-          const newArticles = (response.articles || []).filter(a => {
-            const key = a.id || a.url;
-            if (loadedArticleIds.current.has(key)) return false;
-            loadedArticleIds.current.add(key);
-            return true;
-          });
-          return [...prev, ...newArticles];
-        });
+        // Map 'all' region to 'all' for comprehensive API coverage
+        const regionForAPI = activeRegion === 'all' ? 'all' : activeRegion;
+        response = await newsService.getTopHeadlines(regionForAPI);
+        if (activeCategory !== 'all') {
+          response.articles = newsService.filterByCategory(response.articles, activeCategory);
+        }
       }
-      setHasMore((response.articles || []).length > 0);
+      
+      setNews(response.articles || []);
     } catch (err) {
       setError('Failed to fetch news. Please try again.');
       console.error('Error fetching news:', err);
@@ -105,30 +67,6 @@ const AppContent = () => {
       setLoading(false);
     }
   };
-  // Infinite scroll handler
-  useEffect(() => {
-    const handleScroll = () => {
-      if (!hasMore || loading) return;
-      if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 200) {
-        setPage(prev => prev + 1);
-      }
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [hasMore, loading]);
-
-  // Fetch news when page changes
-  useEffect(() => {
-    fetchNews();
-    // eslint-disable-next-line
-  }, [page]);
-
-  // Reset page and global ID tracker when filters/search change
-  useEffect(() => {
-    setPage(1);
-    setHasMore(true);
-    loadedArticleIds.current = new Set();
-  }, [activeCategory, activeRegion, searchQuery]);
 
   const handleThemeToggle = () => {
     const newTheme = !isDark;
@@ -261,19 +199,6 @@ const AppContent = () => {
                     <NewsCard key={article.id || index} article={article} />
                   ))}
                 </div>
-                {/* Load More Button for Pagination */}
-                {hasMore && !loading && (
-                  <div style={{ textAlign: 'center', margin: '20px 0' }}>
-                    <button
-                      className="load-more-btn"
-                      style={{ padding: '10px 24px', fontSize: '16px', borderRadius: '6px', background: '#2196F3', color: 'white', border: 'none', cursor: 'pointer' }}
-                      onClick={() => setPage(prev => prev + 1)}
-                      disabled={loading}
-                    >
-                      Load More News
-                    </button>
-                  </div>
-                )}
               </section>
             )}
           </Suspense>

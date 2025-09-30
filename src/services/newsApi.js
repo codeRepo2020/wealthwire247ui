@@ -157,7 +157,7 @@ const regionalMarketData = {
 };
 
 class NewsService {
-  async getTopHeadlines(region = 'all', page = 1) {
+  async getTopHeadlines(region = 'all') {
     try {
       // Check cache first
       const cachedData = newsCache.get(region);
@@ -178,49 +178,90 @@ class NewsService {
       let articles = [];
       
       if (region === 'all' || region === 'world') {
-        // Global mode: Fetch from ALL APIs
+        // For Global/All: Fetch from ALL APIs for comprehensive coverage
+        console.log('🌍 Global mode: Fetching from ALL news APIs...');
+        
         const apiPromises = [];
+        
+        // Guardian - International business
         if (NEWS_APIS.guardian.apiKey !== 'test') {
           apiPromises.push(this.fetchFromGuardian().catch(e => []));
         }
+        
+        // GNews - Global coverage
         if (NEWS_APIS.gnews.apiKey !== 'demo') {
           apiPromises.push(this.fetchFromGNews('world').catch(e => []));
         }
+        
+        // NYT - Premium global content
         if (NEWS_APIS.nyt.apiKey !== 'demo') {
-          apiPromises.push(this.fetchFromNYT('all').catch(e => []));
+          apiPromises.push(this.fetchFromNYT('all').catch(e => {
+            console.log('⚠️ NYT failed in global mode:', e.message);
+            return [];
+          }));
         }
+        
+        // NewsData.io - Additional global coverage
         if (NEWS_APIS.newsdata.apiKey !== 'demo') {
-          apiPromises.push(this.fetchFromNewsData('world').catch(e => []));
+          console.log('📡 Adding NewsData.io to global fetch...');
+          apiPromises.push(this.fetchFromNewsData('world').catch(e => {
+            console.log('⚠️ NewsData.io failed in global mode:', e.message);
+            return [];
+          }));
         }
+        
+        // Fetch all APIs simultaneously
+        console.log('🚀 Starting parallel API calls for global mode...');
         const results = await Promise.allSettled(apiPromises);
-        results.forEach(result => {
+        console.log('📊 All API calls completed');
+        
+        // Combine all results
+        results.forEach((result, index) => {
+          const apiNames = ['Guardian', 'GNews', 'NYT', 'NewsData'];
           if (result.status === 'fulfilled' && Array.isArray(result.value)) {
+            console.log(`✅ ${apiNames[index]} returned ${result.value.length} articles`);
             articles = [...articles, ...result.value];
+          } else {
+            console.log(`❌ ${apiNames[index]} failed:`, result.reason?.message || 'Unknown error');
           }
         });
-      } else if (region === 'europe') {
-        // Europe: Only Guardian, with pagination and multi-query
-        if (NEWS_APIS.guardian.apiKey !== 'test') {
-          articles = await this.fetchFromGuardian(page);
-        }
-      } else if (region === 'us') {
-        // US: Only NYT, with pagination
-        if (NEWS_APIS.nyt.apiKey !== 'demo') {
-          articles = await this.fetchFromNYT('us', page);
-        }
+        
+        console.log('🌍 Global articles from all APIs:', articles.length);
+        
+        // Log articles by source for debugging
+        const sourceCount = {};
+        articles.forEach(article => {
+          const source = article.id ? article.id.split('-')[0] : 'unknown';
+          sourceCount[source] = (sourceCount[source] || 0) + 1;
+        });
+        console.log('📊 Articles by source:', sourceCount);
+        
       } else {
-        // Other regions: fallback to NewsAPI and others as before
+        // Regional mode: Original logic
+        // Try NewsAPI first
         if (NEWS_APIS.newsapi.apiKey !== 'demo-key') {
           articles = await this.fetchFromNewsAPI(region);
         }
+        
+        // Try Guardian for Europe if NewsAPI didn't return enough
+        if (region === 'europe' && articles.length < 10 && NEWS_APIS.guardian.apiKey !== 'test') {
+          const guardianArticles = await this.fetchFromGuardian();
+          articles = [...articles, ...guardianArticles];
+        }
+        
+        // Try GNews for India only (China not available)
         if (region === 'india' && articles.length < 10 && NEWS_APIS.gnews.apiKey !== 'demo') {
           const gnewsArticles = await this.fetchFromGNews(region);
           articles = [...articles, ...gnewsArticles];
         }
+        
+        // Try Currents API for additional coverage
         if (articles.length < 15 && NEWS_APIS.currents.apiKey !== 'demo') {
           const currentsArticles = await this.fetchFromCurrents(region);
           articles = [...articles, ...currentsArticles];
         }
+        
+        // Try NYT API for quality content
         if (articles.length < 20 && NEWS_APIS.nyt.apiKey !== 'demo') {
           const nytArticles = await this.fetchFromNYT(region);
           articles = [...articles, ...nytArticles];
@@ -325,48 +366,38 @@ class NewsService {
 
   async fetchFromGuardian() {
     try {
-      console.log('📡 Trying Guardian API with pagination and multiple queries...');
-      const queries = ['business', 'finance', 'economy'];
-      const pageSize = 10;
-      const page = typeof arguments[0] === 'number' ? arguments[0] : 1;
-      const promises = queries.map(q => {
-        const apiUrl = buildApiUrl(NEWS_APIS.guardian.baseUrl, '/search', {
-          'api-key': NEWS_APIS.guardian.apiKey,
-          section: q,
-          'page-size': pageSize,
-          'show-fields': 'thumbnail,trailText',
-          'order-by': 'newest',
-          'page': page
-        });
-        return makeRequestWithFallback(apiUrl);
+      console.log('📡 Trying Guardian API...');
+      
+      const apiUrl = buildApiUrl(NEWS_APIS.guardian.baseUrl, '/search', {
+        'api-key': NEWS_APIS.guardian.apiKey,
+        section: 'business',
+        'page-size': 10,
+        'show-fields': 'thumbnail,trailText',
+        'order-by': 'newest'
       });
-      const results = await Promise.all(promises);
-      let articles = [];
-      results.forEach((response, qIdx) => {
-        if (response.data && response.data.response && response.data.response.results) {
-          articles = articles.concat(response.data.response.results.map((article, index) => ({
-            id: article.id || `guardian-${queries[qIdx]}-${page}-${index}`,
-            title: article.webTitle,
-            description: article.fields?.trailText || '',
-            url: article.webUrl,
-            urlToImage: article.fields?.thumbnail,
-            publishedAt: article.webPublicationDate,
-            source: { name: 'The Guardian' },
-            category: this.categorizeArticle(article.webTitle),
-            region: 'europe',
-            isLive: true
-          })));
-        }
-      });
-      // Deduplicate by id/url
-      const seen = new Set();
-      articles = articles.filter(a => {
-        const key = a.id || a.url;
-        if (seen.has(key)) return false;
-        seen.add(key);
-        return true;
-      });
-      return articles;
+      
+      console.log('🔗 Guardian URL:', apiUrl.substring(0, 100) + '...');
+      
+      const response = await makeRequestWithFallback(apiUrl);
+      
+      if (response.data && response.data.response && response.data.response.results) {
+        console.log('✅ Guardian success:', response.data.response.results.length, 'articles');
+        return response.data.response.results.map((article, index) => ({
+          id: `guardian-${index}`,
+          title: article.webTitle,
+          description: article.fields?.trailText || '',
+          url: article.webUrl,
+          urlToImage: article.fields?.thumbnail,
+          publishedAt: article.webPublicationDate,
+          source: { name: 'The Guardian' },
+          category: this.categorizeArticle(article.webTitle),
+          region: 'europe',
+          isLive: true
+        }));
+      } else {
+        console.log('⚠️ Guardian returned no articles');
+        return [];
+      }
     } catch (error) {
       console.error('❌ Guardian API error:', error.message);
       return [];
@@ -507,103 +538,49 @@ class NewsService {
     }
   }
 
-  async fetchFromNYT(region, page = 1) {
+  async fetchFromNYT(region) {
     try {
-      console.log('📡 Trying NYT API for region:', region, 'page:', page);
+      console.log('📡 Trying NYT API for region:', region);
+      
       if (NEWS_APIS.nyt.apiKey === 'demo') {
         console.log('⚠️ NYT API key not configured');
         return [];
       }
+      
       console.log('🔑 NYT API Key configured:', NEWS_APIS.nyt.apiKey.substring(0, 8) + '...');
-      let articles = [];
-      if (region === 'us') {
-        // Article Search API (paginated)
-        const searchUrl = `${NEWS_APIS.nyt.baseUrl}/search/v2/articlesearch.json?q=business&sort=newest&page=${page-1}&api-key=${NEWS_APIS.nyt.apiKey}`;
-        // Top Stories API (business)
-        const topStoriesUrl = `${NEWS_APIS.nyt.baseUrl}/topstories/v2/business.json?api-key=${NEWS_APIS.nyt.apiKey}`;
-        // Most Popular API (most viewed)
-        const mostPopularUrl = `${NEWS_APIS.nyt.baseUrl}/mostpopular/v2/viewed/1.json?api-key=${NEWS_APIS.nyt.apiKey}`;
-
-        const [searchRes, topRes, popularRes] = await Promise.all([
-          axios.get(searchUrl, { timeout: 10000 }),
-          axios.get(topStoriesUrl, { timeout: 10000 }),
-          axios.get(mostPopularUrl, { timeout: 10000 })
-        ]);
-
-        // Article Search
-        if (searchRes.data && searchRes.data.response && searchRes.data.response.docs) {
-          articles = articles.concat(searchRes.data.response.docs.map((article, index) => ({
-            id: article._id || `nyt-us-search-${page}-${index}`,
-            title: article.headline?.main,
-            description: article.abstract,
-            url: article.web_url,
-            urlToImage: article.multimedia?.length ? `https://www.nytimes.com/${article.multimedia[0].url}` : null,
-            publishedAt: article.pub_date,
-            source: { name: 'The New York Times' },
-            category: this.categorizeArticle(article.headline?.main),
-            region: region,
-            isLive: true
-          })));
-        }
-        // Top Stories
-        if (topRes.data && topRes.data.results) {
-          articles = articles.concat(topRes.data.results.slice(0, 8).map((article, index) => ({
-            id: article.url || `nyt-us-top-${index}`,
-            title: article.title,
-            description: article.abstract,
-            url: article.url,
-            urlToImage: article.multimedia?.[0]?.url || null,
-            publishedAt: article.published_date,
-            source: { name: 'The New York Times' },
-            category: this.categorizeArticle(article.title),
-            region: region,
-            isLive: true
-          })));
-        }
-        // Most Popular
-        if (popularRes.data && popularRes.data.results) {
-          articles = articles.concat(popularRes.data.results.slice(0, 8).map((article, index) => ({
-            id: article.url || `nyt-us-popular-${index}`,
-            title: article.title,
-            description: article.abstract,
-            url: article.url,
-            urlToImage: Array.isArray(article.media) && article.media[0]?.['media-metadata']?.[2]?.url ? article.media[0]['media-metadata'][2].url : null,
-            publishedAt: article.published_date,
-            source: { name: 'The New York Times' },
-            category: this.categorizeArticle(article.title),
-            region: region,
-            isLive: true
-          })));
-        }
-        // Deduplicate by id/url
-        const seen = new Set();
-        articles = articles.filter(a => {
-          const key = a.id || a.url;
-          if (seen.has(key)) return false;
-          seen.add(key);
-          return true;
-        });
+      
+      // Use Top Stories API for business news - Direct call (NYT blocks CORS proxies)
+      const directUrl = `${NEWS_APIS.nyt.baseUrl}/topstories/v2/business.json?api-key=${NEWS_APIS.nyt.apiKey}`;
+      
+      console.log('🔗 NYT Direct URL:', directUrl.substring(0, 100) + '...');
+      
+      const response = await axios.get(directUrl, { timeout: 10000 });
+      
+      console.log('📊 NYT Response status:', response.status);
+      console.log('📊 NYT Response data keys:', Object.keys(response.data || {}));
+      
+      if (response.data && response.data.results) {
+        console.log('✅ NYT success:', response.data.results.length, 'articles');
+        const articles = response.data.results.slice(0, 8).map((article, index) => ({
+          id: `nyt-${region}-${index}`,
+          title: article.title,
+          description: article.abstract,
+          url: article.url,
+          urlToImage: article.multimedia?.[0]?.url || null,
+          publishedAt: article.published_date,
+          source: { name: 'The New York Times' },
+          category: this.categorizeArticle(article.title),
+          region: region,
+          isLive: true
+        }));
+        
+        console.log('📰 NYT Sample article:', articles[0]?.title);
         return articles;
       } else {
-        // Use Top Stories API for other/global
-        const apiUrl = `${NEWS_APIS.nyt.baseUrl}/topstories/v2/business.json?api-key=${NEWS_APIS.nyt.apiKey}`;
-        const response = await axios.get(apiUrl, { timeout: 10000 });
-        if (response.data && response.data.results) {
-          articles = response.data.results.slice(0, 8).map((article, index) => ({
-            id: `nyt-${region}-${index}`,
-            title: article.title,
-            description: article.abstract,
-            url: article.url,
-            urlToImage: article.multimedia?.[0]?.url || null,
-            publishedAt: article.published_date,
-            source: { name: 'The New York Times' },
-            category: this.categorizeArticle(article.title),
-            region: region,
-            isLive: true
-          }));
-          return articles;
-        }
+        console.log('⚠️ NYT returned no results or invalid structure');
+        console.log('📊 Full NYT response:', JSON.stringify(response.data, null, 2));
       }
+      
       return [];
     } catch (error) {
       console.error('❌ NYT API error:', error.response?.data || error.message);
